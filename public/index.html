@@ -6,8 +6,10 @@
   <meta name="theme-color" content="#0e1116" />
   <title>Flight Wall — Control</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/vendor/leaflet/leaflet.css?v=2" />
   <link rel="stylesheet" href="/css/common.css?v=2" />
   <link rel="stylesheet" href="/css/control.css?v=2" />
+  <script src="/vendor/leaflet/leaflet.js?v=2"></script>
 </head>
 <body>
   <div class="wrap">
@@ -75,6 +77,18 @@
               </select>
             </div>
           </div>
+        </fieldset>
+
+        <fieldset class="group" id="areasSection">
+          <legend>Additional areas <span class="hint">merged with the home area</span></legend>
+          <div class="area-tools">
+            <button type="button" class="ghost" id="addCircle">＋ Circle</button>
+            <button type="button" class="ghost" id="addPolygon">＋ Polygon</button>
+            <button type="button" class="ghost" id="finishPolygon" hidden>✓ Finish</button>
+          </div>
+          <div id="areaMap" class="area-map"></div>
+          <div id="areaHint" class="hint area-hint"></div>
+          <div id="areaList" class="area-list"></div>
         </fieldset>
 
         <fieldset class="group" id="filtersSection">

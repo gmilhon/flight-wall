@@ -23,6 +23,7 @@ export function defaultSettings(screenId = DEFAULT_SCREEN_ID) {
     mode: 'area', // 'area' | 'flight'
     home: { lat: null, lon: null, label: '' },
     radiusNm: 15,
+    areas: [], // additional radius/polygon areas beyond home (merged for fetch)
     units: 'aviation', // 'aviation' | 'metric' | 'imperial' (preset)
     altUnit: 'auto', spdUnit: 'auto', vertUnit: 'auto', distUnit: 'auto', // per-metric overrides
     titleMode: 'flight', // 'flight' (callsign) | 'airline' (airline name)
@@ -128,6 +129,26 @@ function cleanFilters(input, base) {
   return { types, altMinFt: bound(input.altMinFt, 0), altMaxFt: bound(input.altMaxFt, 60000), airlines };
 }
 
+function cleanArea(a) {
+  if (!a || typeof a !== 'object') return null;
+  const label = String(a.label ?? '').slice(0, 40);
+  if (a.type === 'polygon') {
+    const points = (Array.isArray(a.points) ? a.points : [])
+      .map((p) => ({ lat: num(p?.lat, NaN), lon: num(p?.lon, NaN) }))
+      .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lon))
+      .map((p) => ({ lat: clamp(p.lat, -90, 90), lon: clamp(p.lon, -180, 180) }))
+      .slice(0, 20);
+    return points.length >= 3 ? { type: 'polygon', label, points } : null;
+  }
+  const lat = num(a.lat, NaN), lon = num(a.lon, NaN);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  return { type: 'radius', label, lat: clamp(lat, -90, 90), lon: clamp(lon, -180, 180), radiusNm: Math.round(clamp(num(a.radiusNm, 15), 1, 250)) };
+}
+function cleanAreas(input, base) {
+  if (!Array.isArray(input)) return base || [];
+  return input.map(cleanArea).filter(Boolean).slice(0, 6);
+}
+
 /**
  * Coerce arbitrary (untrusted) input into a valid settings object, merging
  * over the current/default settings so partial updates are allowed.
@@ -154,6 +175,7 @@ export function sanitizeSettings(input, base) {
       label: String(home.label ?? d.home.label).slice(0, 60),
     },
     radiusNm: Math.round(clamp(num(src.radiusNm, d.radiusNm), 1, 250)),
+    areas: cleanAreas(src.areas, d.areas),
     units: pick(src.units, ONE_OF.units, d.units),
     altUnit: pick(src.altUnit, ONE_OF.altUnit, d.altUnit),
     spdUnit: pick(src.spdUnit, ONE_OF.spdUnit, d.spdUnit),

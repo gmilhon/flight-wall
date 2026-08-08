@@ -4,7 +4,7 @@
 
 import { config } from './config.js';
 import { fetchJson } from './http.js';
-import { haversineKm, bearingDeg, clamp } from './geo.js';
+import { haversineKm, bearingDeg, clamp, kmToNm, pointInPolygon, polygonCenter } from './geo.js';
 import { routeForCallsign, aircraftForReg, airlineFromCallsign } from './enrich.js';
 import { IATA2ICAO } from './airlines.js';
 import { recordSightings, getSeenCount } from './sightings.js';
@@ -167,14 +167,62 @@ function passesFilters(f, filters) {
 // ---- Public entry points ---------------------------------------------------
 
 /** Area mode: aircraft within the configured radius of home. */
+function centerOf(area) {
+  return area.type === 'polygon' ? polygonCenter(area.points) : { lat: area.lat, lon: area.lon };
+}
+
+// Distance/bearing from the NEAREST area center, so far-away areas aren't sorted
+// out by a single home reference.
+function withNearest(f, centers) {
+  if (f.lat != null && f.lon != null && centers.length) {
+    let best = Infinity, bc = centers[0];
+    for (const c of centers) {
+      const d = haversineKm(c.lat, c.lon, f.lat, f.lon);
+      if (d < best) { best = d; bc = c; }
+    }
+    f.distanceKm = best;
+    f.bearingDeg = bearingDeg(bc.lat, bc.lon, f.lat, f.lon);
+  } else {
+    f.distanceKm = null;
+    f.bearingDeg = null;
+  }
+  return f;
+}
+
+// Fetch raw aircraft for one area (radius, or a polygon via bounding circle + filter).
+async function fetchAreaRaw(area) {
+  if (area.type === 'polygon') {
+    if (!Array.isArray(area.points) || area.points.length < 3) return [];
+    const c = polygonCenter(area.points);
+    const rKm = Math.max(...area.points.map((p) => haversineKm(c.lat, c.lon, p.lat, p.lon)));
+    const rNm = clamp(Math.ceil(kmToNm(rKm)) + 1, 1, 250);
+    const ac = await fetchArea(c.lat, c.lon, rNm);
+    return ac.filter((a) => a.lat != null && a.lon != null && pointInPolygon(a.lat, a.lon, area.points));
+  }
+  if (area.lat == null || area.lon == null) return [];
+  return fetchArea(area.lat, area.lon, clamp(area.radiusNm || 15, 1, 250));
+}
+
 export async function getAreaFlights(settings) {
   const { home } = settings;
-  if (!home || home.lat == null || home.lon == null) {
-    return { flights: [], note: 'no-home' };
+  const areas = [];
+  if (home && home.lat != null && home.lon != null) {
+    areas.push({ type: 'radius', lat: home.lat, lon: home.lon, radiusNm: settings.radiusNm });
   }
-  const ac = await fetchArea(home.lat, home.lon, settings.radiusNm);
-  let list = ac.map((a) => withGeo(normalizeBase(a), home));
-  // Count every tail in range (not just the ones shown) before limiting.
+  for (const a of settings.areas || []) areas.push(a);
+  if (!areas.length) return { flights: [], note: 'no-home' };
+
+  const centers = areas.map(centerOf);
+  const batches = await Promise.all(areas.map((a) => fetchAreaRaw(a).catch(() => [])));
+  // Merge overlapping areas, deduping by aircraft.
+  const byKey = new Map();
+  for (const ac of batches) {
+    for (const a of ac) {
+      const k = a.hex || `${a.flight || ''}|${a.r || ''}`;
+      if (!byKey.has(k)) byKey.set(k, a);
+    }
+  }
+  let list = [...byKey.values()].map((a) => withNearest(normalizeBase(a), centers));
   if (settings.showSightings !== false) await recordSightings(settings.screenId, list);
   if (settings.filters) list = list.filter((f) => passesFilters(f, settings.filters));
   sortFlights(list, settings.sort);

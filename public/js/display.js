@@ -209,7 +209,7 @@ function render() {
   el('modeLabel').textContent = settings.mode === 'flight' ? 'TRACKING' : 'OVERHEAD';
 
   const u = resolveUnits(settings);
-  const noHome = settings.mode === 'area' && settings.home?.lat == null;
+  const noHome = settings.mode === 'area' && settings.home?.lat == null && !(settings.areas?.length);
   const positioned = flights.filter((f) => f.lat != null && f.lon != null);
   const cycle = settings.layout === 'cycle';
   const wantSide = !cycle && settings.sidePanel && settings.sidePanel !== 'off' && !noHome && positioned.length > 0;
@@ -262,7 +262,7 @@ function updateStatus() {
 }
 
 // --- Map (Leaflet) ---------------------------------------------------------
-let map, homeMarker, rangeCircle, lastFitKey = '';
+let map, homeMarker, rangeCircle, areasLayer, lastFitKey = '';
 const planeMarkers = new Map();
 
 function ensureMap() {
@@ -293,17 +293,41 @@ function updateMap() {
   const home = settings.home;
   const areaMode = settings.mode === 'area';
 
-  if (areaMode && home?.lat != null) {
-    const rM = settings.radiusNm * 1852;
-    if (!homeMarker) homeMarker = L.circleMarker([home.lat, home.lon], { radius: 4, color: '#fff', weight: 2, fillColor: '#fff', fillOpacity: 1 }).addTo(map);
-    else homeMarker.setLatLng([home.lat, home.lon]);
-    if (!rangeCircle) rangeCircle = L.circle([home.lat, home.lon], { radius: rM, color: 'rgba(255,255,255,0.3)', weight: 1, fill: false }).addTo(map);
-    else { rangeCircle.setLatLng([home.lat, home.lon]); rangeCircle.setRadius(rM); }
-    const fitKey = `${home.lat},${home.lon},${settings.radiusNm}`;
-    if (fitKey !== lastFitKey) { map.fitBounds(rangeCircle.getBounds(), { padding: [10, 10] }); lastFitKey = fitKey; }
-  } else if (rangeCircle) {
-    map.removeLayer(rangeCircle); rangeCircle = null;
-    if (homeMarker) { map.removeLayer(homeMarker); homeMarker = null; }
+  if (areaMode) {
+    const extraAreas = settings.areas || [];
+    if (home?.lat != null) {
+      const rM = settings.radiusNm * 1852;
+      if (!homeMarker) homeMarker = L.circleMarker([home.lat, home.lon], { radius: 4, color: '#fff', weight: 2, fillColor: '#fff', fillOpacity: 1 }).addTo(map);
+      else homeMarker.setLatLng([home.lat, home.lon]);
+      if (!rangeCircle) rangeCircle = L.circle([home.lat, home.lon], { radius: rM, color: 'rgba(255,255,255,0.3)', weight: 1, fill: false }).addTo(map);
+      else { rangeCircle.setLatLng([home.lat, home.lon]); rangeCircle.setRadius(rM); }
+    } else if (rangeCircle) {
+      map.removeLayer(rangeCircle); rangeCircle = null;
+      if (homeMarker) { map.removeLayer(homeMarker); homeMarker = null; }
+    }
+    // additional radius / polygon areas
+    if (areasLayer) { map.removeLayer(areasLayer); areasLayer = null; }
+    if (extraAreas.length) {
+      areasLayer = L.layerGroup();
+      for (const a of extraAreas) {
+        if (a.type === 'polygon' && a.points?.length >= 3) {
+          L.polygon(a.points.map((p) => [p.lat, p.lon]), { color: 'rgba(255,255,255,0.4)', weight: 1, fillOpacity: 0.04 }).addTo(areasLayer);
+        } else if (a.lat != null) {
+          L.circle([a.lat, a.lon], { radius: (a.radiusNm || 15) * 1852, color: 'rgba(255,255,255,0.3)', weight: 1, fill: false }).addTo(areasLayer);
+        }
+      }
+      areasLayer.addTo(map);
+    }
+    const fitKey = `${home?.lat},${home?.lon},${settings.radiusNm}|${JSON.stringify(extraAreas)}`;
+    if (fitKey !== lastFitKey) {
+      const layers = [];
+      if (rangeCircle) layers.push(rangeCircle);
+      if (areasLayer) layers.push(...areasLayer.getLayers());
+      if (layers.length) {
+        try { map.fitBounds(L.featureGroup(layers).getBounds(), { padding: [12, 12] }); } catch { /* ignore */ }
+      }
+      lastFitKey = fitKey;
+    }
   }
 
   const seen = new Set();

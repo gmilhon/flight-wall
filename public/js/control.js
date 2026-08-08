@@ -1,5 +1,6 @@
 // Control panel: edit a screen's settings and push them to the display.
 import { getConfig, getScreens, getSettings, saveSettings, getSightings, resetSightings } from './api.js';
+import { AreaEditor } from './area-editor.js';
 
 const el = (id) => document.getElementById(id);
 const PIN_KEY = 'flightwall.pin';
@@ -7,6 +8,7 @@ const PIN_KEY = 'flightwall.pin';
 let cfg = { pinRequired: false };
 let screenId = new URLSearchParams(location.search).get('screen') || 'main';
 let settings = null;
+const areaEditor = new AreaEditor(el('areaMap'), el('areaList'), el('areaHint'));
 
 // --- Load ------------------------------------------------------------------
 async function boot() {
@@ -60,6 +62,8 @@ function fillForm(s) {
   el('alertOnAppear').checked = s.alertOnAppear !== false;
   el('showSightings').checked = s.showSightings !== false;
   fillFilters(s.filters || {});
+  areaEditor.setHome(s.home?.lat ?? null, s.home?.lon ?? null, s.radiusNm);
+  areaEditor.setAreas(s.areas || []);
   renderTrackList(s.trackedFlights || []);
   const audio = s.audio || { enabled: false, volume: 0.8, channels: [] };
   el('audioEnabled').checked = !!audio.enabled;
@@ -77,6 +81,7 @@ function gatherForm() {
       label: el('homeLabel').value.trim(),
     },
     radiusNm: Number(el('radius').value),
+    areas: areaEditor.getAreas(),
     sort: el('sort').value,
     maxFlights: Number(el('maxFlights').value),
     units: el('units').value,
@@ -113,7 +118,9 @@ function setMode(mode) {
 function applyMode(mode) {
   el('areaSection').hidden = mode !== 'area';
   el('filtersSection').hidden = mode !== 'area';
+  el('areasSection').hidden = mode !== 'area';
   el('trackSection').hidden = mode !== 'flight';
+  if (mode === 'area') areaEditor.invalidate();
 }
 
 // --- Tracked flights -------------------------------------------------------
@@ -326,6 +333,7 @@ function sizePreview() {
 // --- Wire up ---------------------------------------------------------------
 el('radius').addEventListener('input', (e) => {
   el('radiusVal').textContent = `${e.target.value} NM`;
+  syncEditorHome();
 });
 document.querySelectorAll('input[name="mode"]').forEach((r) =>
   r.addEventListener('change', () => applyMode(currentMode()))
@@ -337,6 +345,7 @@ el('geoBtn').addEventListener('click', () => {
     (pos) => {
       el('lat').value = pos.coords.latitude.toFixed(5);
       el('lon').value = pos.coords.longitude.toFixed(5);
+      syncEditorHome();
       el('geoBtn').textContent = '📍 Use my location';
     },
     (err) => {
@@ -355,6 +364,16 @@ el('addAirline').addEventListener('click', addAirlineCode);
 el('airlineInput').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') { e.preventDefault(); addAirlineCode(); }
 });
+
+function syncEditorHome() {
+  const lat = el('lat').value === '' ? null : Number(el('lat').value);
+  const lon = el('lon').value === '' ? null : Number(el('lon').value);
+  areaEditor.setHome(lat, lon, Number(el('radius').value));
+}
+['lat', 'lon'].forEach((id) => el(id).addEventListener('input', syncEditorHome));
+el('addCircle').addEventListener('click', () => { areaEditor.startCircle(); el('finishPolygon').hidden = true; });
+el('addPolygon').addEventListener('click', () => { areaEditor.startPolygon(); el('finishPolygon').hidden = areaEditor.mode !== 'polygon'; });
+el('finishPolygon').addEventListener('click', () => { areaEditor.finishPolygon(); el('finishPolygon').hidden = true; });
 el('saveBtn').addEventListener('click', save);
 el('screenSelect').addEventListener('change', (e) => {
   history.replaceState(null, '', `?screen=${encodeURIComponent(e.target.value)}`);

@@ -97,7 +97,8 @@ curl "$BASE/api/settings?screen=main"
 | `home.lat` | number\|null | −90..90 | Required for area mode. |
 | `home.lon` | number\|null | −180..180 | |
 | `home.label` | string | ≤ 60 chars | Shown on the display header. |
-| `radiusNm` | integer | 1..250 | Area radius, nautical miles. |
+| `radiusNm` | integer | 1..250 | Home area radius, nautical miles. |
+| `areas` | array | ≤ 6 | Extra areas merged with home: `{type:'radius', lat, lon, radiusNm}` or `{type:'polygon', points:[{lat,lon}…]}`. |
 | `units` | string | `aviation` \| `metric` \| `imperial` | |
 | `maxFlights` | integer | 1..8 | Max cards shown. |
 | `sort` | string | `distance` \| `altitude` \| `speed` | Airborne always ranks above ground. |

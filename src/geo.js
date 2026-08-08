@@ -35,3 +35,22 @@ export const kmToNm = (km) => km / 1.852;
 export function clamp(n, lo, hi) {
   return Math.max(lo, Math.min(hi, n));
 }
+
+/** Ray-casting point-in-polygon test. poly = [{lat, lon}, …] (planar approx). */
+export function pointInPolygon(lat, lon, poly) {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const xi = poly[i].lon, yi = poly[i].lat;
+    const xj = poly[j].lon, yj = poly[j].lat;
+    const hit = yi > lat !== yj > lat && lon < ((xj - xi) * (lat - yi)) / (yj - yi) + xi;
+    if (hit) inside = !inside;
+  }
+  return inside;
+}
+
+/** Average of polygon vertices (good enough as a fetch center). */
+export function polygonCenter(poly) {
+  let lat = 0, lon = 0;
+  for (const p of poly) { lat += p.lat; lon += p.lon; }
+  return { lat: lat / poly.length, lon: lon / poly.length };
+}

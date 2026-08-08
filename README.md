@@ -98,6 +98,8 @@ Firestore (on Cloud Run) so you can control the display from anywhere.
 - **Aviation** (ft, kt, NM, flight levels), **Metric** (m, km/h, km), or
   **Imperial** (ft, mph, mi).
 - Adjustable refresh interval (5–60s), max flights (1–8), and radius.
+- **Multiple areas** per screen: add extra radius circles or hand-drawn polygons
+  on a map (anywhere in the world) and merge their traffic with your home area.
 - **Filters** (area mode): show/hide by aircraft type (commercial / small jets /
   light / helicopters / other), an altitude range, and an airline allow-list.
 - **Per-metric units** (altitude / speed / vertical-rate / distance set
