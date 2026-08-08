@@ -3,6 +3,8 @@ import express from 'express';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { timingSafeEqual } from 'node:crypto';
+import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 
 import { config, isPinRequired } from './config.js';
 import {
@@ -137,6 +139,60 @@ app.get('/api/map/:z/:x/:y', async (req, res) => {
     res.send(buf);
   } catch {
     res.status(502).end();
+  }
+});
+
+// Live ATC audio proxy: streams a configured channel URL to the browser with
+// CORS enabled (required for Web Audio panning) and over HTTPS (avoids mixed
+// content for http feeds). Only URLs present in the given screen's audio config
+// are proxied, so this is not an open proxy. See docs/ATC_AUDIO.md for terms.
+app.get('/api/audio-proxy', async (req, res) => {
+  const screen = cleanScreenId(req.query.screen);
+  const url = String(req.query.url || '');
+  if (!/^https?:\/\//i.test(url)) return res.status(400).end();
+  let host;
+  try {
+    host = new URL(url).hostname.toLowerCase();
+  } catch {
+    return res.status(400).end();
+  }
+  // Basic SSRF guard: refuse loopback/private/link-local hosts.
+  if (
+    /^(localhost|127\.|10\.|192\.168\.|169\.254\.)/.test(host) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
+    host === '::1' || host.endsWith('.local') || host.endsWith('.internal')
+  ) {
+    return res.status(400).end();
+  }
+  const settings = await getScreen(screen);
+  const allowed = new Set((settings.audio?.channels || []).map((c) => c.url));
+  if (!allowed.has(url)) return res.status(403).end();
+
+  const ac = new AbortController();
+  res.on('close', () => ac.abort());
+  try {
+    const up = await fetch(url, {
+      headers: { 'User-Agent': config.userAgent, Accept: '*/*' },
+      signal: ac.signal,
+      redirect: 'follow',
+    });
+    if (!up.ok || !up.body) {
+      if (!res.headersSent) res.status(502).end();
+      return;
+    }
+    res.setHeader('Content-Type', up.headers.get('content-type') || 'audio/mpeg');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    // pipeline cleans up both streams and rejects (rather than throwing) on
+    // client disconnect / abort — so a dropped listener never crashes the server.
+    await pipeline(Readable.fromWeb(up.body), res);
+  } catch {
+    if (!res.headersSent) {
+      try { res.status(502).end(); } catch { /* ignore */ }
+    } else {
+      try { res.destroy(); } catch { /* ignore */ }
+    }
   }
 });
 

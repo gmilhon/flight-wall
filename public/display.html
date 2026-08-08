@@ -21,6 +21,7 @@
       </div>
       <div class="right">
         <span id="clock" class="clock">--:--:--</span>
+        <button id="muteBtn" class="fs" title="Mute ATC audio" aria-label="Mute audio" hidden>🔊</button>
         <button id="fsBtn" class="fs" title="Toggle full screen" aria-label="Full screen">⛶</button>
       </div>
     </header>
@@ -36,10 +37,12 @@
 
     <footer id="foot">
       <span id="status" class="status"></span>
+      <span id="audioBar" class="audio-bar" hidden></span>
       <span id="count" class="count"></span>
       <span id="stamp" class="stamp"></span>
     </footer>
 
+    <button id="audioGate" class="audio-gate" hidden>🔊 Tap to enable ATC audio</button>
     <div id="alert" class="alert" hidden></div>
   </div>
   <script type="module" src="/js/display.js?v=2"></script>

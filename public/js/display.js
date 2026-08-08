@@ -6,6 +6,7 @@ import {
 } from './format.js';
 import { airlineColor, airlineIata, airlineLogoUrl, airlineMonogram, textOn, shortAirlineName } from './airline-brand.js';
 import { aircraftCategory, aircraftIconSvg } from './aircraft-silhouettes.js';
+import { AtcAudio } from './atc-audio.js';
 
 const screenId = new URLSearchParams(location.search).get('screen') || 'main';
 const hasLeaflet = typeof window.L !== 'undefined';
@@ -16,6 +17,10 @@ const board = el('board');
 const sideWrap = el('sideWrap');
 const canvas = el('radar');
 const ctx = canvas.getContext('2d');
+
+// ATC audio is skipped inside the control-panel preview iframe.
+const inIframe = window.self !== window.top;
+const atc = inIframe ? null : new AtcAudio(screenId);
 
 let settings = null;
 let flights = [];
@@ -343,6 +348,7 @@ async function poll() {
     lastGoodAt = Date.now();
     detectAppearances();
     firstLoad = false;
+    if (atc) atc.apply(settings.audio);
     if (settings.refreshSec && settings.refreshSec !== refreshSec) { refreshSec = settings.refreshSec; schedule(); }
     render();
   } catch (err) {
@@ -366,10 +372,38 @@ function wake() {
   clearTimeout(idleTimer);
   idleTimer = setTimeout(() => document.body.classList.add('idle'), 4000);
   if (audioCtx?.state === 'suspended') audioCtx.resume();
+  if (atc && atc.suspended) atc.resume();
 }
 ['mousemove', 'touchstart', 'keydown', 'click'].forEach((e) => window.addEventListener(e, wake));
 wake();
 window.addEventListener('resize', () => settings && render());
+
+// --- ATC audio UI ----------------------------------------------------------
+function panArrow(pan) {
+  return pan < -0.05 ? '◀' : pan > 0.05 ? '▶' : '•';
+}
+function renderAudioUI(state) {
+  const muteBtn = el('muteBtn'), audioBar = el('audioBar'), gate = el('audioGate');
+  if (!state || !state.enabled || !state.channels.length) {
+    muteBtn.hidden = true; audioBar.hidden = true; gate.hidden = true;
+    return;
+  }
+  muteBtn.hidden = false;
+  muteBtn.textContent = state.muted ? '🔇' : '🔊';
+  audioBar.hidden = false;
+  audioBar.innerHTML = state.channels
+    .map((c) => {
+      const cls = c.status === 'live' ? 'ok' : c.status === 'reconnecting' ? 'warn' : 'buf';
+      return `<span class="ach"><span class="dot ${cls}"></span>${panArrow(c.pan)} ${escapeHtml(c.label)}</span>`;
+    })
+    .join('');
+  gate.hidden = !(state.suspended && !state.muted);
+}
+if (atc) {
+  atc.onState = renderAudioUI;
+  el('muteBtn').addEventListener('click', () => atc.toggleMute());
+  el('audioGate').addEventListener('click', () => atc.resume());
+}
 
 // --- Boot ------------------------------------------------------------------
 poll();

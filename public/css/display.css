@@ -158,6 +158,17 @@
 #foot .count { margin-left: auto; }
 .status .dot { margin-right: 0.4em; }
 
+/* ---- ATC audio ---- */
+.audio-bar { display: flex; align-items: center; gap: 0.9rem; min-width: 0; overflow: hidden; }
+.ach { display: inline-flex; align-items: center; gap: 0.35em; white-space: nowrap; }
+.audio-gate {
+  position: absolute; left: 50%; bottom: 9%; transform: translateX(-50%); z-index: 25;
+  background: var(--accent); color: #06121f; border: none; cursor: pointer;
+  padding: 0.7em 1.4em; border-radius: 999px; font-weight: 800;
+  font-size: clamp(0.9rem, 2vw, 1.3rem); box-shadow: 0 10px 34px rgba(0,0,0,0.55);
+}
+.audio-gate:hover { filter: brightness(1.06); }
+
 /* ---- Kiosk ---- */
 body.idle #app { cursor: none; }
 body.idle .fs { opacity: 0; }

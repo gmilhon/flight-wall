@@ -33,6 +33,9 @@ export function defaultSettings(screenId = DEFAULT_SCREEN_ID) {
     showAircraftIcons: true,
     alertOnAppear: true, // sound/visual alert when a tracked flight appears
     trackedFlights: [], // up to 5 callsigns / flight numbers
+    // Live ATC audio. Channels can be panned left/center/right (e.g. two airports
+    // in stereo). See docs/ATC_AUDIO.md for sources and terms.
+    audio: { enabled: false, volume: 0.8, channels: [] },
     updatedAt: 0,
   };
 }
@@ -59,6 +62,39 @@ function cleanCallsign(s) {
     .toUpperCase()
     .replace(/[^A-Z0-9]/g, '')
     .slice(0, 8);
+}
+
+function cleanAudioUrl(u) {
+  const s = String(u || '').trim().slice(0, 300);
+  return /^https?:\/\//i.test(s) ? s : '';
+}
+
+function cleanChannel(c) {
+  if (!c || typeof c !== 'object') return null;
+  const url = cleanAudioUrl(c.url);
+  const label = String(c.label ?? '').slice(0, 40);
+  if (!url && !label) return null;
+  return {
+    label,
+    url,
+    pan: ['left', 'center', 'right'].includes(c.pan) ? c.pan : 'center',
+    volume: clamp(num(c.volume, 1), 0, 1),
+    proxy: Boolean(c.proxy),
+  };
+}
+
+function cleanAudio(input, base) {
+  let audio = base || { enabled: false, volume: 0.8, channels: [] };
+  if (input && typeof input === 'object') {
+    audio = {
+      enabled: input.enabled === undefined ? audio.enabled : Boolean(input.enabled),
+      volume: clamp(num(input.volume, audio.volume), 0, 1),
+      channels: Array.isArray(input.channels)
+        ? input.channels.map(cleanChannel).filter(Boolean).slice(0, 4)
+        : audio.channels,
+    };
+  }
+  return audio;
 }
 
 /**
@@ -102,6 +138,7 @@ export function sanitizeSettings(input, base) {
     showAircraftIcons: src.showAircraftIcons === undefined ? d.showAircraftIcons : Boolean(src.showAircraftIcons),
     alertOnAppear: src.alertOnAppear === undefined ? d.alertOnAppear : Boolean(src.alertOnAppear),
     trackedFlights: tracked,
+    audio: cleanAudio(src.audio, d.audio),
     updatedAt: Date.now(),
   };
 }

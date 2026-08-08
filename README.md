@@ -80,6 +80,10 @@ Firestore (on Cloud Run) so you can control the display from anywhere.
   Map tiles are proxied through the app so they load even on ad-blocked networks.
 - **Tracked-flight alerts**: a chime and an on-screen banner when a flight you're
   tracking comes into range.
+- **Live ATC audio** (optional): play up to 4 airport feeds, each panned
+  left / center / right — hear two airports in stereo. Works with LiveATC
+  (personal use, via a built-in proxy) or your own RTL-SDR. See
+  [docs/ATC_AUDIO.md](docs/ATC_AUDIO.md).
 - Card text auto-scales (CSS container queries) so 1–8 flights fit any screen
   from a 7″ Pi panel to a 4K TV without scrolling.
 - Kiosk niceties: one-click full screen, auto-hiding cursor, and it keeps showing
@@ -301,6 +305,7 @@ Full details and examples in **[`docs/API.md`](docs/API.md)**.
 | `GET` | `/api/screens` | List known screen ids. |
 | `GET` | `/api/config` | Server info (version, whether a PIN is required, storage). |
 | `GET` | `/api/map/{z}/{x}/{y}` | Proxied + cached dark map tiles for the display. |
+| `GET` | `/api/audio-proxy?screen=&url=` | Streams a configured ATC audio channel with CORS (for panning). |
 | `GET` | `/health` | Health check. |
 
 ---
@@ -322,9 +327,9 @@ Full details and examples in **[`docs/API.md`](docs/API.md)**.
 │   ├── index.html     # control panel
 │   ├── display.html   # display view
 │   ├── css/           # common + control + display styles (3 themes)
-│   ├── js/            # control.js, display.js, format, api, airline-brand, silhouettes
+│   ├── js/            # control, display, format, api, airline-brand, silhouettes, atc-audio
 │   └── vendor/        # Leaflet (vendored, for the map)
-├── docs/              # ARCHITECTURE.md, API.md, DISPLAY_SETUP.md
+├── docs/              # ARCHITECTURE, API, DISPLAY_SETUP, ATC_AUDIO
 ├── Dockerfile         # Cloud Run container
 ├── deploy.sh          # one-command deploy helper
 └── package.json

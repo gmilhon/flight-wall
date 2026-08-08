@@ -179,6 +179,12 @@ No build step; plain ES modules load directly in the browser.
   CARTO dark basemap server-side, and caches tiles in-process. Same-origin tiles
   can't be blocked by CDN-targeting ad blockers, so the map is reliable on a
   kiosk.
+- **ATC audio** (`atc-audio.js` + `/api/audio-proxy`) — plays configured channels
+  through the Web Audio API with per-channel left/center/right panning
+  (`StereoPannerNode`). Non-CORS / http feeds are re-streamed same-origin by the
+  proxy (allowlisted to that screen's configured URLs; loopback/private hosts
+  refused; disconnects handled via `stream.pipeline` so a dropped listener never
+  crashes the server). See [ATC_AUDIO.md](ATC_AUDIO.md).
 - **Control** (`control.js`) — binds the form to a settings object, handles
   geolocation, tracked-flight rows, and saving (with the optional PIN). The live
   preview is an `<iframe>` of the real display rendered at 1280×720 and CSS-scaled

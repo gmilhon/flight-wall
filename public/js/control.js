@@ -51,6 +51,10 @@ function fillForm(s) {
   el('showAircraftIcons').checked = s.showAircraftIcons !== false;
   el('alertOnAppear').checked = s.alertOnAppear !== false;
   renderTrackList(s.trackedFlights || []);
+  const audio = s.audio || { enabled: false, volume: 0.8, channels: [] };
+  el('audioEnabled').checked = !!audio.enabled;
+  el('audioVolume').value = audio.volume ?? 0.8;
+  renderAudioChannels(audio.channels || []);
 }
 
 function gatherForm() {
@@ -75,6 +79,7 @@ function gatherForm() {
     trackedFlights: [...document.querySelectorAll('.track-input')]
       .map((i) => i.value.trim())
       .filter(Boolean),
+    audio: gatherAudio(),
   };
 }
 
@@ -117,6 +122,60 @@ function addTrackRow(value = '') {
 }
 function updateAddBtn() {
   el('addTrack').disabled = el('trackList').children.length >= 5;
+}
+
+// --- ATC audio channels ----------------------------------------------------
+const esc = (s) => String(s || '').replace(/"/g, '&quot;');
+
+function renderAudioChannels(list) {
+  el('audioChannels').innerHTML = '';
+  (list || []).forEach((c) => addAudioRow(c));
+  updateAddAudioBtn();
+}
+function addAudioRow(c = {}) {
+  const box = el('audioChannels');
+  if (box.children.length >= 4) return;
+  const pan = c.pan || 'center';
+  const row = document.createElement('div');
+  row.className = 'audio-row';
+  row.innerHTML = `
+    <input class="au-label" maxlength="40" placeholder="Label (e.g. DFW Tower)" value="${esc(c.label)}" />
+    <input class="au-url" maxlength="300" placeholder="Stream URL (http:// or https://)" value="${esc(c.url)}" />
+    <div class="au-controls">
+      <select class="au-pan">
+        <option value="left"${pan === 'left' ? ' selected' : ''}>◀ Left</option>
+        <option value="center"${pan === 'center' ? ' selected' : ''}>• Center</option>
+        <option value="right"${pan === 'right' ? ' selected' : ''}>Right ▶</option>
+      </select>
+      <input class="au-vol" type="range" min="0" max="1" step="0.05" value="${c.volume ?? 1}" title="Channel volume" />
+      <label class="au-proxy"><input type="checkbox" class="au-proxy-cb"${c.proxy ? ' checked' : ''} /> Proxy</label>
+      <button type="button" class="ghost au-remove" title="Remove">✕</button>
+    </div>`;
+  row.querySelector('.au-remove').addEventListener('click', () => { row.remove(); updateAddAudioBtn(); });
+  box.appendChild(row);
+  updateAddAudioBtn();
+}
+function updateAddAudioBtn() {
+  el('addAudio').disabled = el('audioChannels').children.length >= 4;
+}
+function gatherAudio() {
+  const channels = [...document.querySelectorAll('.audio-row')]
+    .map((r) => ({
+      label: r.querySelector('.au-label').value.trim(),
+      url: r.querySelector('.au-url').value.trim(),
+      pan: r.querySelector('.au-pan').value,
+      volume: Number(r.querySelector('.au-vol').value),
+      proxy: r.querySelector('.au-proxy-cb').checked,
+    }))
+    .filter((c) => c.url || c.label);
+  return { enabled: el('audioEnabled').checked, volume: Number(el('audioVolume').value), channels };
+}
+function loadAudioExample() {
+  renderAudioChannels([
+    { label: 'DFW Tower', url: 'http://d.liveatc.net/kdfw2', pan: 'left', volume: 1, proxy: true },
+    { label: 'Alliance Tower', url: 'http://d.liveatc.net/kafw1', pan: 'right', volume: 1, proxy: true },
+  ]);
+  el('audioEnabled').checked = true;
 }
 
 // --- Save ------------------------------------------------------------------
@@ -185,6 +244,8 @@ el('geoBtn').addEventListener('click', () => {
   );
 });
 el('addTrack').addEventListener('click', () => addTrackRow(''));
+el('addAudio').addEventListener('click', () => addAudioRow({ pan: 'center', proxy: true }));
+el('exampleAudio').addEventListener('click', loadAudioExample);
 el('saveBtn').addEventListener('click', save);
 el('screenSelect').addEventListener('change', (e) => {
   history.replaceState(null, '', `?screen=${encodeURIComponent(e.target.value)}`);

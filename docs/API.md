@@ -33,6 +33,14 @@ display's map view. Coordinates are validated, fetched server-side, and cached
 in-process, so the map keeps working even when a client blocks CDN hosts.
 Returns `image/png`.
 
+## `GET /api/audio-proxy?screen=<id>&url=<stream>`
+
+Streams an ATC audio channel to the browser with `Access-Control-Allow-Origin: *`
+(required for Web Audio panning) and over HTTPS (avoids mixed content for `http`
+feeds). Only URLs present in that screen's `audio.channels` are forwarded, so it
+is not an open proxy; loopback/private hosts are refused. See
+[ATC_AUDIO.md](ATC_AUDIO.md) and note LiveATC's terms before proxying their feeds.
+
 ## `GET /api/screens`
 
 List known screen ids.
@@ -87,6 +95,7 @@ curl "$BASE/api/settings?screen=main"
 | `showAircraftIcons` | boolean | | Aircraft type silhouettes. |
 | `alertOnAppear` | boolean | | Chime + banner when a tracked flight appears. |
 | `trackedFlights` | string[] | ≤ 5 | Callsigns/flight numbers (flight mode). |
+| `audio` | object | | `{ enabled, volume: 0..1, channels[] }`. Up to 4 channels, each `{ label, url, pan: left\|center\|right, volume: 0..1, proxy }`. |
 
 ## `POST /api/settings?screen=<id>`
 

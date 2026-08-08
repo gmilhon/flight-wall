@@ -22,3 +22,4 @@ code { font-family: var(--mono); }
 .dot { display: inline-block; width: 0.6em; height: 0.6em; border-radius: 50%; vertical-align: middle; }
 .dot.ok { background: #2ecc71; box-shadow: 0 0 6px #2ecc71; }
 .dot.warn { background: #f1c40f; box-shadow: 0 0 6px #f1c40f; }
+.dot.buf { background: #6ea8fe; box-shadow: 0 0 6px #6ea8fe; }
