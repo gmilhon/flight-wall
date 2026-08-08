@@ -23,7 +23,9 @@ export function defaultSettings(screenId = DEFAULT_SCREEN_ID) {
     mode: 'area', // 'area' | 'flight'
     home: { lat: null, lon: null, label: '' },
     radiusNm: 15,
-    units: 'aviation', // 'aviation' | 'metric' | 'imperial'
+    units: 'aviation', // 'aviation' | 'metric' | 'imperial' (preset)
+    altUnit: 'auto', spdUnit: 'auto', vertUnit: 'auto', distUnit: 'auto', // per-metric overrides
+    titleMode: 'flight', // 'flight' (callsign) | 'airline' (airline name)
     maxFlights: 5,
     sort: 'distance', // 'distance' | 'altitude' | 'speed'
     theme: 'departure', // 'departure' | 'radar' | 'minimal'
@@ -33,6 +35,13 @@ export function defaultSettings(screenId = DEFAULT_SCREEN_ID) {
     showAircraftIcons: true,
     alertOnAppear: true, // sound/visual alert when a tracked flight appears
     showSightings: true, // count repeat tail numbers and badge them
+    // Display filters (area mode). Empty/complete = no filtering.
+    filters: {
+      types: ['commercial', 'smalljet', 'light', 'heli', 'other'],
+      altMinFt: null,
+      altMaxFt: null,
+      airlines: [],
+    },
     trackedFlights: [], // up to 5 callsigns / flight numbers
     // Live ATC audio. Channels can be panned left/center/right (e.g. two airports
     // in stereo). See docs/ATC_AUDIO.md for sources and terms.
@@ -47,6 +56,11 @@ const ONE_OF = {
   sort: ['distance', 'altitude', 'speed'],
   theme: ['departure', 'radar', 'minimal'],
   sidePanel: ['map', 'radar', 'off'],
+  titleMode: ['flight', 'airline'],
+  altUnit: ['auto', 'aviation', 'ft', 'm', 'km'],
+  spdUnit: ['auto', 'kt', 'kmh', 'mph', 'ms'],
+  vertUnit: ['auto', 'fpm', 'ms'],
+  distUnit: ['auto', 'nm', 'km', 'mi'],
 };
 
 function pick(value, allowed, fallback) {
@@ -98,6 +112,19 @@ function cleanAudio(input, base) {
   return audio;
 }
 
+const FILTER_TYPES = ['commercial', 'smalljet', 'light', 'heli', 'other'];
+function cleanFilters(input, base) {
+  const b = base || { types: [...FILTER_TYPES], altMinFt: null, altMaxFt: null, airlines: [] };
+  if (!input || typeof input !== 'object') return b;
+  let types = Array.isArray(input.types) ? input.types.filter((t) => FILTER_TYPES.includes(t)) : b.types;
+  if (!types.length) types = [...FILTER_TYPES]; // at least one type must show
+  const bound = (v, dflt) => (v == null || v === '' ? null : Math.round(clamp(num(v, dflt), 0, 60000)));
+  const airlines = Array.isArray(input.airlines)
+    ? [...new Set(input.airlines.map((a) => String(a || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4)).filter((a) => a.length >= 2))].slice(0, 10)
+    : b.airlines;
+  return { types, altMinFt: bound(input.altMinFt, 0), altMaxFt: bound(input.altMaxFt, 60000), airlines };
+}
+
 /**
  * Coerce arbitrary (untrusted) input into a valid settings object, merging
  * over the current/default settings so partial updates are allowed.
@@ -125,6 +152,11 @@ export function sanitizeSettings(input, base) {
     },
     radiusNm: Math.round(clamp(num(src.radiusNm, d.radiusNm), 1, 250)),
     units: pick(src.units, ONE_OF.units, d.units),
+    altUnit: pick(src.altUnit, ONE_OF.altUnit, d.altUnit),
+    spdUnit: pick(src.spdUnit, ONE_OF.spdUnit, d.spdUnit),
+    vertUnit: pick(src.vertUnit, ONE_OF.vertUnit, d.vertUnit),
+    distUnit: pick(src.distUnit, ONE_OF.distUnit, d.distUnit),
+    titleMode: pick(src.titleMode, ONE_OF.titleMode, d.titleMode),
     maxFlights: Math.round(clamp(num(src.maxFlights, d.maxFlights), 1, 8)),
     sort: pick(src.sort, ONE_OF.sort, d.sort),
     theme: pick(src.theme, ONE_OF.theme, d.theme),
@@ -139,6 +171,7 @@ export function sanitizeSettings(input, base) {
     showAircraftIcons: src.showAircraftIcons === undefined ? d.showAircraftIcons : Boolean(src.showAircraftIcons),
     alertOnAppear: src.alertOnAppear === undefined ? d.alertOnAppear : Boolean(src.alertOnAppear),
     showSightings: src.showSightings === undefined ? d.showSightings : Boolean(src.showSightings),
+    filters: cleanFilters(src.filters, d.filters),
     trackedFlights: tracked,
     audio: cleanAudio(src.audio, d.audio),
     updatedAt: Date.now(),

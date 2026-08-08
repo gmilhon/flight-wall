@@ -79,6 +79,7 @@
   display: flex; align-items: baseline; gap: 0.5em; overflow: hidden;
 }
 .flightno .cs { flex: 0 0 auto; } /* callsign never truncates */
+.flightno .cs.cs-name { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-family: system-ui, sans-serif; } /* airline-name title can shrink */
 .flightno .airline { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: system-ui, sans-serif; font-weight: 600; font-size: 0.46em; color: var(--muted); letter-spacing: 0; }
 .flightno .emerg { flex: 0 0 auto; font-size: 0.42em; color: #ff4d4d; border: 1px solid #ff4d4d; border-radius: 4px; padding: 0 0.3em; text-transform: uppercase; }
 .flightno .seen-badge { flex: 0 0 auto; font-family: system-ui, sans-serif; font-weight: 700; font-size: 0.4em; letter-spacing: 0.02em; color: var(--accent2); border: 1px solid var(--accent2); border-radius: 999px; padding: 0.05em 0.55em; white-space: nowrap; }

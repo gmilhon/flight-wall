@@ -77,6 +77,28 @@
           </div>
         </fieldset>
 
+        <fieldset class="group" id="filtersSection">
+          <legend>Filters <span class="hint">area mode</span></legend>
+          <label class="sub-label">Aircraft types</label>
+          <div class="toggles">
+            <label><input type="checkbox" class="ftype" value="commercial" /> Commercial</label>
+            <label><input type="checkbox" class="ftype" value="smalljet" /> Small jets</label>
+            <label><input type="checkbox" class="ftype" value="light" /> Light aircraft</label>
+            <label><input type="checkbox" class="ftype" value="heli" /> Helicopters</label>
+            <label><input type="checkbox" class="ftype" value="other" /> Other</label>
+          </div>
+          <div class="grid2">
+            <div><label for="altMin">Min altitude (ft)</label><input id="altMin" type="number" min="0" max="60000" step="500" placeholder="any" /></div>
+            <div><label for="altMax">Max altitude (ft)</label><input id="altMax" type="number" min="0" max="60000" step="500" placeholder="any" /></div>
+          </div>
+          <label class="sub-label" for="airlineInput">Airlines <span class="hint">ICAO/IATA code, max 10 — empty = all</span></label>
+          <div class="track-row">
+            <input id="airlineInput" type="text" maxlength="4" placeholder="e.g. UAL or UA" style="text-transform:uppercase" />
+            <button type="button" class="ghost" id="addAirline">Add</button>
+          </div>
+          <div id="airlineList" class="chips"></div>
+        </fieldset>
+
         <fieldset class="group" id="trackSection" hidden>
           <legend>Tracked flights <span class="hint">(up to 5)</span></legend>
           <div id="trackList"></div>
@@ -121,6 +143,30 @@
               </select>
             </div>
           </div>
+          <div class="row">
+            <label for="titleMode">Flight title</label>
+            <select id="titleMode">
+              <option value="flight">Flight number (callsign)</option>
+              <option value="airline">Airline name</option>
+            </select>
+          </div>
+          <details class="advanced">
+            <summary>Per-metric units</summary>
+            <div class="grid2">
+              <div><label for="altUnit">Altitude</label><select id="altUnit">
+                <option value="auto">Auto</option><option value="aviation">Flight level / ft</option><option value="ft">Feet</option><option value="m">Meters</option><option value="km">Kilometers</option>
+              </select></div>
+              <div><label for="spdUnit">Speed</label><select id="spdUnit">
+                <option value="auto">Auto</option><option value="kt">Knots</option><option value="kmh">km/h</option><option value="mph">mph</option><option value="ms">m/s</option>
+              </select></div>
+              <div><label for="vertUnit">Vertical rate</label><select id="vertUnit">
+                <option value="auto">Auto</option><option value="fpm">ft/min</option><option value="ms">m/s</option>
+              </select></div>
+              <div><label for="distUnit">Distance</label><select id="distUnit">
+                <option value="auto">Auto</option><option value="nm">NM</option><option value="km">km</option><option value="mi">mi</option>
+              </select></div>
+            </div>
+          </details>
           <div class="toggles">
             <label><input type="checkbox" id="showLogos" /> Airline logos</label>
             <label><input type="checkbox" id="showAircraftIcons" /> Aircraft icons</label>

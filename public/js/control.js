@@ -46,12 +46,18 @@ function fillForm(s) {
   el('maxFlights').value = s.maxFlights;
   el('units').value = s.units;
   el('theme').value = s.theme;
+  el('titleMode').value = s.titleMode || 'flight';
+  el('altUnit').value = s.altUnit || 'auto';
+  el('spdUnit').value = s.spdUnit || 'auto';
+  el('vertUnit').value = s.vertUnit || 'auto';
+  el('distUnit').value = s.distUnit || 'auto';
   el('refresh').value = s.refreshSec;
   el('sidePanel').value = s.sidePanel || 'map';
   el('showLogos').checked = s.showLogos !== false;
   el('showAircraftIcons').checked = s.showAircraftIcons !== false;
   el('alertOnAppear').checked = s.alertOnAppear !== false;
   el('showSightings').checked = s.showSightings !== false;
+  fillFilters(s.filters || {});
   renderTrackList(s.trackedFlights || []);
   const audio = s.audio || { enabled: false, volume: 0.8, channels: [] };
   el('audioEnabled').checked = !!audio.enabled;
@@ -72,6 +78,11 @@ function gatherForm() {
     sort: el('sort').value,
     maxFlights: Number(el('maxFlights').value),
     units: el('units').value,
+    altUnit: el('altUnit').value,
+    spdUnit: el('spdUnit').value,
+    vertUnit: el('vertUnit').value,
+    distUnit: el('distUnit').value,
+    titleMode: el('titleMode').value,
     theme: el('theme').value,
     refreshSec: Number(el('refresh').value),
     sidePanel: el('sidePanel').value,
@@ -79,6 +90,7 @@ function gatherForm() {
     showAircraftIcons: el('showAircraftIcons').checked,
     alertOnAppear: el('alertOnAppear').checked,
     showSightings: el('showSightings').checked,
+    filters: gatherFilters(),
     trackedFlights: [...document.querySelectorAll('.track-input')]
       .map((i) => i.value.trim())
       .filter(Boolean),
@@ -96,6 +108,7 @@ function setMode(mode) {
 }
 function applyMode(mode) {
   el('areaSection').hidden = mode !== 'area';
+  el('filtersSection').hidden = mode !== 'area';
   el('trackSection').hidden = mode !== 'flight';
 }
 
@@ -226,6 +239,44 @@ async function doResetRegulars() {
   }
 }
 
+// --- Filters ---------------------------------------------------------------
+let filterAirlines = [];
+const ALL_FTYPES = ['commercial', 'smalljet', 'light', 'heli', 'other'];
+
+function fillFilters(f) {
+  const types = Array.isArray(f.types) && f.types.length ? f.types : ALL_FTYPES;
+  document.querySelectorAll('.ftype').forEach((cb) => { cb.checked = types.includes(cb.value); });
+  el('altMin').value = f.altMinFt ?? '';
+  el('altMax').value = f.altMaxFt ?? '';
+  filterAirlines = Array.isArray(f.airlines) ? [...f.airlines] : [];
+  renderAirlineChips();
+}
+function gatherFilters() {
+  const types = [...document.querySelectorAll('.ftype:checked')].map((cb) => cb.value);
+  const nOrNull = (v) => (v === '' || v == null ? null : Number(v));
+  return { types, altMinFt: nOrNull(el('altMin').value), altMaxFt: nOrNull(el('altMax').value), airlines: filterAirlines };
+}
+function renderAirlineChips() {
+  const box = el('airlineList');
+  box.innerHTML = filterAirlines
+    .map((c) => `<span class="chip" data-code="${esc(c)}">${esc(c)} <button type="button" aria-label="Remove">✕</button></span>`)
+    .join('');
+  box.querySelectorAll('.chip button').forEach((b) => {
+    b.addEventListener('click', () => {
+      filterAirlines = filterAirlines.filter((c) => c !== b.parentElement.dataset.code);
+      renderAirlineChips();
+    });
+  });
+}
+function addAirlineCode() {
+  const code = el('airlineInput').value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4);
+  if (code.length >= 2 && !filterAirlines.includes(code) && filterAirlines.length < 10) {
+    filterAirlines.push(code);
+    renderAirlineChips();
+  }
+  el('airlineInput').value = '';
+}
+
 // --- Save ------------------------------------------------------------------
 async function save() {
   const pin = cfg.pinRequired ? el('pin').value.trim() : '';
@@ -296,6 +347,10 @@ el('addAudio').addEventListener('click', () => addAudioRow({ pan: 'center', prox
 el('exampleAudio').addEventListener('click', loadAudioExample);
 el('refreshRegulars').addEventListener('click', loadRegulars);
 el('resetRegulars').addEventListener('click', doResetRegulars);
+el('addAirline').addEventListener('click', addAirlineCode);
+el('airlineInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); addAirlineCode(); }
+});
 el('saveBtn').addEventListener('click', save);
 el('screenSelect').addEventListener('change', (e) => {
   history.replaceState(null, '', `?screen=${encodeURIComponent(e.target.value)}`);

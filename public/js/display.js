@@ -2,10 +2,10 @@
 import { getState } from './api.js';
 import {
   escapeHtml, fmtAltitude, fmtSpeed, fmtVert, fmtDistance, fmtTrack,
-  distanceUnitLabel, pad2,
+  distanceUnitLabel, resolveUnits, pad2,
 } from './format.js';
 import { airlineColor, airlineIata, airlineLogoUrl, airlineMonogram, textOn, shortAirlineName } from './airline-brand.js';
-import { aircraftCategory, aircraftIconSvg } from './aircraft-silhouettes.js';
+import { aircraftIconSvg } from './aircraft-silhouettes.js';
 import { AtcAudio } from './atc-audio.js';
 
 const screenId = new URLSearchParams(location.search).get('screen') || 'main';
@@ -41,7 +41,7 @@ setInterval(tickClock, 1000);
 tickClock();
 
 // --- Card rendering --------------------------------------------------------
-function routeHtml(f, units) {
+function routeHtml(f, u) {
   const o = f.origin, d = f.destination;
   if (o?.iata || d?.iata) {
     const cities = [o?.city, d?.city].filter(Boolean).join(' – ');
@@ -52,7 +52,7 @@ function routeHtml(f, units) {
       ${cities ? `<span class="cities">${escapeHtml(cities)}</span>` : ''}
     </div>`;
   }
-  const dist = f.distanceKm != null ? `${fmtDistance(f.distanceKm, units)} away` : '';
+  const dist = f.distanceKm != null ? `${fmtDistance(f.distanceKm, u.dist)} away` : '';
   return `<div class="route muted">${escapeHtml(dist || 'Local traffic')}</div>`;
 }
 
@@ -75,7 +75,7 @@ function logoHtml(f, color) {
 
 function iconHtml(f, color) {
   if (!settings.showAircraftIcons) return '';
-  const cat = aircraftCategory(f.aircraft?.code, f.category);
+  const cat = f.acCategory || 'narrowbody';
   return `<div class="ac-icon" style="color:${color}">${aircraftIconSvg(cat)}</div>`;
 }
 
@@ -92,7 +92,7 @@ function isPrivateFlight(f) {
   return !(f.airline && f.airline.name);
 }
 
-function flightCard(f, units) {
+function flightCard(f, u) {
   if (f.status === 'not-found') {
     return `<article class="flight not-found">
       <div class="ident"><div class="flightno"><span class="cs">${escapeHtml(f.callsign || f.query || '—')}</span></div>
@@ -108,9 +108,13 @@ function flightCard(f, units) {
     ? `<span class="seen-badge" title="Seen ${f.seenCount} times here">★ ${f.seenCount}</span>`
     : '';
   const model = f.aircraft?.name || f.aircraft?.code || '';
+  // Title mode: 'airline' puts the airline name in the big title and the
+  // callsign in the pill; 'flight' (default) does the reverse.
+  const airlineTitle = settings.titleMode === 'airline' && !priv;
+  const title = airlineTitle ? shortAirlineName(f.airline.name) : callsign;
   const pill = priv
     ? `<span class="airline-pill private">Private</span>`
-    : `<span class="airline-pill" style="background:${color};color:${textOn(color)}">${escapeHtml(shortAirlineName(f.airline.name))}</span>`;
+    : `<span class="airline-pill" style="background:${color};color:${textOn(color)}">${escapeHtml(airlineTitle ? callsign : shortAirlineName(f.airline.name))}</span>`;
   const icon = iconHtml(f, color);
   const acCol = (icon || model)
     ? `<div class="ac-col">${icon}${model ? `<div class="ac-model">${escapeHtml(model)}</div>` : ''}</div>`
@@ -119,15 +123,15 @@ function flightCard(f, units) {
   return `<article class="flight" style="--fc:${color}">
     ${acCol}
     <div class="ident">
-      <div class="flightno"><span class="cs">${escapeHtml(callsign)}</span>${seen}${emerg}</div>
-      <div class="subline">${pill}${priv ? ownerHtml(f) : routeHtml(f, units)}</div>
+      <div class="flightno"><span class="cs${airlineTitle ? ' cs-name' : ''}">${escapeHtml(title)}</span>${seen}${emerg}</div>
+      <div class="subline">${pill}${priv ? ownerHtml(f) : routeHtml(f, u)}</div>
     </div>
     <div class="metrics">
-      ${metric('ALT', fmtAltitude(f.altFt, units, f.onGround))}
-      ${metric('SPD', fmtSpeed(f.gsKt, units))}
+      ${metric('ALT', fmtAltitude(f.altFt, u.alt, f.onGround))}
+      ${metric('SPD', fmtSpeed(f.gsKt, u.spd))}
       ${metric('TRK', fmtTrack(f.trackDeg))}
-      ${metric('V/S', fmtVert(f.vertFpm, units))}
-      ${metric('DIST', fmtDistance(f.distanceKm, units))}
+      ${metric('V/S', fmtVert(f.vertFpm, u.vert))}
+      ${metric('DIST', fmtDistance(f.distanceKm, u.dist))}
     </div>
     ${logo ? `<div class="tail">${logo}</div>` : ''}
   </article>`;
@@ -144,7 +148,7 @@ function render() {
   el('homeLabel').textContent = homeLabel;
   el('modeLabel').textContent = settings.mode === 'flight' ? 'TRACKING' : 'OVERHEAD';
 
-  const units = settings.units || 'aviation';
+  const u = resolveUnits(settings);
   const noHome = settings.mode === 'area' && settings.home?.lat == null;
   const positioned = flights.filter((f) => f.lat != null && f.lon != null);
   const wantSide = settings.sidePanel && settings.sidePanel !== 'off' && !noHome && positioned.length > 0;
@@ -165,7 +169,7 @@ function render() {
     board.innerHTML = `<div class="empty"><div class="big">${settings.mode === 'flight' ? 'No tracked flights' : 'No aircraft overhead'}</div>
       <div class="sub">${settings.mode === 'flight' ? 'Add flights in the control panel.' : `Watching a ${settings.radiusNm} NM radius. Standing by…`}</div></div>`;
   } else {
-    board.innerHTML = flights.map((f) => flightCard(f, units)).join('');
+    board.innerHTML = flights.map((f) => flightCard(f, u)).join('');
   }
 
   el('count').textContent = flights.length
@@ -173,15 +177,15 @@ function render() {
 
   if (useMap) {
     try {
-      updateMap(units);
+      updateMap();
     } catch (e) {
       console.warn('map failed, falling back to radar', e);
       el('mapEl').hidden = true;
       canvas.hidden = false;
       el('rangeLabel').hidden = false;
-      drawRadar(units);
+      drawRadar(u);
     }
-  } else if (useRadar) drawRadar(units);
+  } else if (useRadar) drawRadar(u);
   updateStatus();
 }
 
@@ -212,7 +216,7 @@ function ensureMap() {
 }
 
 function planeDivIcon(f, color) {
-  const cat = aircraftCategory(f.aircraft?.code, f.category);
+  const cat = f.acCategory || 'narrowbody';
   const html = `<div class="pm">
     <div class="pm-ico" style="color:${color}; transform:rotate(${Math.round(f.trackDeg || 0)}deg)">${aircraftIconSvg(cat)}</div>
     <div class="pm-lbl">${escapeHtml((f.callsign || '').slice(0, 8))}</div>
@@ -268,7 +272,7 @@ function sizeCanvas() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   return size;
 }
-function drawRadar(units) {
+function drawRadar(u) {
   const size = sizeCanvas();
   const cx = size / 2, cy = size / 2, R = Math.min(cx, cy) - 10;
   const maxRangeKm = Math.max(1, settings.radiusNm) * 1.852;
@@ -279,7 +283,7 @@ function drawRadar(units) {
   for (let i = 1; i <= 3; i++) { ctx.beginPath(); ctx.arc(cx, cy, (R * i) / 3, 0, Math.PI * 2); ctx.stroke(); }
   ctx.beginPath(); ctx.moveTo(cx, cy - R); ctx.lineTo(cx, cy + R); ctx.moveTo(cx - R, cy); ctx.lineTo(cx + R, cy); ctx.stroke();
   ctx.fillText('N', cx - 3, cy - R + 12);
-  const ul = distanceUnitLabel(units);
+  const ul = distanceUnitLabel(u.dist);
   el('rangeLabel').textContent = `RANGE ${ul === 'NM' ? settings.radiusNm + ' NM' : ul === 'km' ? Math.round(maxRangeKm) + ' km' : Math.round(maxRangeKm * 0.621371) + ' mi'}`;
   ctx.fillStyle = accent; ctx.beginPath(); ctx.arc(cx, cy, 3, 0, Math.PI * 2); ctx.fill();
   for (const f of flights) {

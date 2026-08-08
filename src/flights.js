@@ -8,6 +8,7 @@ import { haversineKm, bearingDeg, clamp } from './geo.js';
 import { routeForCallsign, aircraftForReg, airlineFromCallsign } from './enrich.js';
 import { IATA2ICAO } from './airlines.js';
 import { recordSightings, getSeenCount } from './sightings.js';
+import { aircraftCategory, uiCategory } from './aircraft-category.js';
 
 const rawCache = new Map(); // key -> { data, at }
 
@@ -89,6 +90,7 @@ function normalizeBase(a) {
     vertFpm: numOrNull(a.baro_rate ?? a.geom_rate),
     squawk: a.squawk || null,
     category: a.category || null,
+    acCategory: aircraftCategory(a.t, a.category),
     typeCode: String(a.t || '').trim() || null,
     typeDesc: a.desc || null, // some upstreams include a description
     emergency: a.emergency && a.emergency !== 'none' ? a.emergency : null,
@@ -141,6 +143,27 @@ function sortFlights(list, sort) {
   return list;
 }
 
+// Display filters (type / altitude / airline allow-list). Applied to the full
+// in-range list before sorting and limiting.
+function passesFilters(f, filters) {
+  if (!filters) return true;
+  const types = filters.types;
+  if (Array.isArray(types) && types.length && types.length < 5 &&
+      !types.includes(uiCategory(f.acCategory))) {
+    return false;
+  }
+  if (filters.altMinFt != null && (f.altFt == null || f.altFt < filters.altMinFt)) return false;
+  if (filters.altMaxFt != null && f.altFt != null && f.altFt > filters.altMaxFt) return false;
+  const airlines = filters.airlines;
+  if (Array.isArray(airlines) && airlines.length) {
+    const icao = airlineFromCallsign(f.callsign)?.icao;
+    if (!icao) return false;
+    const allowed = airlines.map((a) => (a.length === 2 ? IATA2ICAO[a] : a));
+    if (!allowed.includes(icao)) return false;
+  }
+  return true;
+}
+
 // ---- Public entry points ---------------------------------------------------
 
 /** Area mode: aircraft within the configured radius of home. */
@@ -153,6 +176,7 @@ export async function getAreaFlights(settings) {
   let list = ac.map((a) => withGeo(normalizeBase(a), home));
   // Count every tail in range (not just the ones shown) before limiting.
   if (settings.showSightings !== false) await recordSightings(settings.screenId, list);
+  if (settings.filters) list = list.filter((f) => passesFilters(f, settings.filters));
   sortFlights(list, settings.sort);
   list = list.slice(0, settings.maxFlights);
   await Promise.all(list.map(enrich));

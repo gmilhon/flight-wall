@@ -79,6 +79,19 @@ input[type='range'] { width: 100%; accent-color: var(--accent); }
 .reg-count { color: var(--accent); font-weight: 700; }
 .reg-ago { margin-left: auto; color: var(--muted); font-size: 0.8rem; }
 
+/* Filters */
+.sub-label { font-size: 0.82rem; color: var(--muted); font-weight: 600; }
+.chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.chips:empty { display: none; }
+.chip { display: inline-flex; align-items: center; gap: 0.3rem; background: var(--input); border: 1px solid var(--line); border-radius: 999px; padding: 0.2rem 0.6rem; font-family: var(--mono); font-size: 0.8rem; }
+.chip button { background: none; border: none; color: var(--muted); padding: 0; font-size: 0.85rem; line-height: 1; cursor: pointer; }
+.chip button:hover { color: var(--err); }
+
+/* Advanced (collapsible) */
+.advanced { border: 1px solid var(--line); border-radius: 9px; padding: 0.5rem 0.7rem; }
+.advanced summary { cursor: pointer; color: var(--muted); font-size: 0.85rem; font-weight: 600; }
+.advanced .grid2 { margin-top: 0.6rem; }
+
 /* Buttons */
 .ghost { background: var(--input); color: var(--text); border: 1px solid var(--line); border-radius: 9px; padding: 0.5rem 0.8rem; }
 .ghost:hover { border-color: var(--accent); }
