@@ -1,0 +1,137 @@
+/* ===== Display view ===== */
+#app {
+  position: relative;
+  height: 100vh; height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* ---- Themes ---- */
+#app[data-theme='departure'] {
+  --bg: #0a0a0b; --panel: #141414; --card: #131313;
+  --text: #ffb000; --muted: #b07e2e; --dim: #6d5320;
+  --accent: #ffb000; --accent2: #ff7a00;
+  --line: rgba(255, 176, 0, 0.16); --radar-line: rgba(255, 176, 0, 0.22);
+  --num-font: var(--mono);
+}
+#app[data-theme='radar'] {
+  --bg: #001103; --panel: #04220a; --card: #05230b;
+  --text: #34ff6a; --muted: #1f9e46; --dim: #147a34;
+  --accent: #34ff6a; --accent2: #6dffa0;
+  --line: rgba(52, 255, 106, 0.18); --radar-line: rgba(52, 255, 106, 0.28);
+  --num-font: var(--mono);
+}
+#app[data-theme='minimal'] {
+  --bg: #0e1116; --panel: #161b22; --card: #161b22;
+  --text: #e6edf3; --muted: #8b949e; --dim: #545d68;
+  --accent: #4ea1ff; --accent2: #7cc3ff;
+  --line: rgba(255, 255, 255, 0.09); --radar-line: rgba(255, 255, 255, 0.16);
+  --num-font: var(--mono);
+}
+#app[data-theme='radar']::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 5;
+  background: repeating-linear-gradient(0deg, rgba(0,0,0,0.22) 0 1px, transparent 1px 3px);
+  opacity: 0.5;
+}
+
+/* ---- Header ---- */
+#hdr {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 1rem; padding: clamp(0.5rem, 1.6vh, 1.1rem) clamp(0.8rem, 2vw, 1.6rem);
+  border-bottom: 1px solid var(--line);
+}
+.brand { font-weight: 800; letter-spacing: 0.18em; font-size: clamp(0.9rem, 1.8vw, 1.4rem); }
+.brand .logo { color: var(--accent2); margin-right: 0.35em; }
+.ctx { display: flex; align-items: center; gap: 0.8rem; color: var(--muted); min-width: 0; }
+.ctx .home { font-size: clamp(0.8rem, 1.5vw, 1.15rem); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.right { display: flex; align-items: center; gap: 0.7rem; }
+.clock { font-family: var(--num-font); font-size: clamp(1rem, 2.4vw, 1.8rem); font-weight: 700; letter-spacing: 0.06em; }
+.fs {
+  background: transparent; border: 1px solid var(--line); color: var(--muted);
+  border-radius: 8px; width: 2rem; height: 2rem; line-height: 1; font-size: 1rem;
+}
+.fs:hover { color: var(--text); border-color: var(--accent); }
+
+/* ---- Main layout ---- */
+#main {
+  flex: 1; min-height: 0; display: grid; gap: clamp(0.5rem, 1.4vw, 1.2rem);
+  grid-template-columns: minmax(0, 1fr) clamp(220px, 30vw, 440px);
+  padding: clamp(0.5rem, 1.4vh, 1.1rem) clamp(0.8rem, 2vw, 1.6rem);
+}
+#app.no-radar #main { grid-template-columns: minmax(0, 1fr); }
+
+/* ---- Board ---- */
+.board { min-height: 0; display: flex; flex-direction: column; gap: clamp(0.4rem, 1vh, 0.8rem); overflow: hidden; }
+.flight {
+  flex: 1 1 0; min-height: 0; overflow: hidden; container-type: size;
+  display: grid; align-items: center;
+  grid-template-columns: minmax(0, 1.7fr) auto minmax(0, 0.5fr);
+  gap: clamp(0.5rem, 1.6vw, 1.4rem);
+  padding: clamp(0.4rem, 1.1vh, 1rem) clamp(0.7rem, 1.6vw, 1.3rem);
+  background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+  border-left: 4px solid var(--accent);
+}
+/* Card text scales to each card's own height (cqh) so any row count fits. */
+.ident { min-width: 0; }
+.flightno {
+  font-family: var(--num-font); font-weight: 800; letter-spacing: 0.04em;
+  font-size: clamp(1rem, 26cqh, 2.2rem); line-height: 1.05;
+  display: flex; align-items: baseline; gap: 0.5em; overflow: hidden;
+}
+.flightno .cs { flex: 0 0 auto; } /* callsign never truncates */
+.flightno .airline { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: system-ui, sans-serif; font-weight: 600; font-size: 0.46em; color: var(--muted); letter-spacing: 0; }
+.flightno .emerg { flex: 0 0 auto; font-size: 0.42em; color: #ff4d4d; border: 1px solid #ff4d4d; border-radius: 4px; padding: 0 0.3em; text-transform: uppercase; }
+.route { margin-top: 0.2em; font-size: clamp(0.78rem, 15cqh, 1.35rem); color: var(--text); display: flex; align-items: baseline; gap: 0.4em; white-space: nowrap; overflow: hidden; }
+.route .ap { font-family: var(--num-font); font-weight: 700; letter-spacing: 0.05em; }
+.route .arrow { color: var(--accent2); }
+.route .cities { color: var(--muted); font-size: 0.72em; overflow: hidden; text-overflow: ellipsis; }
+.route.muted { color: var(--muted); }
+
+.metrics { display: flex; gap: clamp(0.4rem, 1.1vw, 1.1rem); align-items: center; }
+.metric { display: flex; flex-direction: column; align-items: flex-start; }
+.metric label { font-size: clamp(0.5rem, 7cqh, 0.72rem); letter-spacing: 0.1em; color: var(--dim); text-transform: uppercase; }
+.metric span { font-family: var(--num-font); font-weight: 700; font-size: clamp(0.85rem, 17cqh, 1.4rem); white-space: nowrap; }
+
+.actype { text-align: right; color: var(--muted); font-size: clamp(0.7rem, 12cqh, 1.05rem); justify-self: end; overflow: hidden; }
+
+/* not-found tracked flight */
+.flight.not-found { opacity: 0.75; grid-template-columns: 1fr auto; border-left-color: var(--dim); }
+.flight .await { font-family: var(--num-font); color: var(--muted); letter-spacing: 0.14em; font-size: clamp(0.8rem, 1.6vw, 1.2rem); }
+
+/* ---- Empty states ---- */
+.empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 0.6rem; color: var(--muted); }
+.empty .big { font-size: clamp(1.4rem, 4vw, 3rem); font-weight: 800; letter-spacing: 0.08em; color: var(--text); }
+.empty .sub { font-size: clamp(0.9rem, 1.8vw, 1.3rem); }
+.empty .url { font-family: var(--mono); color: var(--accent); margin-top: 0.4rem; }
+
+/* ---- Radar ---- */
+.radar { position: relative; display: flex; align-items: center; justify-content: center; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 0.5rem; min-height: 0; }
+.radar canvas { width: 100%; height: 100%; }
+.radar .range { position: absolute; bottom: 0.5rem; right: 0.7rem; font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.1em; color: var(--muted); }
+
+/* ---- Footer ---- */
+#foot {
+  display: flex; align-items: center; gap: 1.2rem;
+  padding: clamp(0.3rem, 1vh, 0.7rem) clamp(0.8rem, 2vw, 1.6rem);
+  border-top: 1px solid var(--line); color: var(--muted);
+  font-family: var(--mono); font-size: clamp(0.65rem, 1.3vw, 0.9rem); letter-spacing: 0.06em;
+}
+#foot .count { margin-left: auto; }
+.status .dot { margin-right: 0.4em; }
+
+/* ---- Kiosk ---- */
+body.idle #app { cursor: none; }
+body.idle .fs { opacity: 0; }
+
+/* ---- Narrow (preview iframe / portrait) ---- */
+@media (max-width: 820px) {
+  #main { grid-template-columns: minmax(0, 1fr); }
+  #app.no-radar #main, #app #main { grid-template-columns: minmax(0, 1fr); }
+  .radar { display: none; }
+  .flight { grid-template-columns: 1fr; gap: 0.3rem; align-content: center; }
+  .actype { text-align: left; justify-self: start; }
+  .metrics { flex-wrap: wrap; }
+}

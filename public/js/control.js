@@ -1,0 +1,213 @@
+// Control panel: edit a screen's settings and push them to the display.
+import { getConfig, getScreens, getSettings, saveSettings } from './api.js';
+
+const el = (id) => document.getElementById(id);
+const PIN_KEY = 'flightwall.pin';
+
+let cfg = { pinRequired: false };
+let screenId = new URLSearchParams(location.search).get('screen') || 'main';
+let settings = null;
+
+// --- Load ------------------------------------------------------------------
+async function boot() {
+  cfg = await getConfig();
+  el('storageBadge').textContent = cfg.storage;
+  el('pinRow').hidden = !cfg.pinRequired;
+  if (cfg.pinRequired) el('pin').value = localStorage.getItem(PIN_KEY) || '';
+
+  const { screens } = await getScreens();
+  const sel = el('screenSelect');
+  sel.innerHTML = screens.map((s) => `<option value="${s}">${s}</option>`).join('');
+  if (!screens.includes(screenId)) {
+    sel.innerHTML += `<option value="${screenId}">${screenId}</option>`;
+  }
+  sel.value = screenId;
+
+  await loadScreen(screenId);
+}
+
+async function loadScreen(id) {
+  screenId = id;
+  settings = await getSettings(id);
+  fillForm(settings);
+  updateLinks();
+}
+
+// --- Form <-> settings -----------------------------------------------------
+function fillForm(s) {
+  setMode(s.mode);
+  el('lat').value = s.home?.lat ?? '';
+  el('lon').value = s.home?.lon ?? '';
+  el('homeLabel').value = s.home?.label ?? '';
+  el('radius').value = s.radiusNm;
+  el('radiusVal').textContent = `${s.radiusNm} NM`;
+  el('sort').value = s.sort;
+  el('maxFlights').value = s.maxFlights;
+  el('units').value = s.units;
+  el('theme').value = s.theme;
+  el('refresh').value = s.refreshSec;
+  el('showRadar').checked = !!s.showRadar;
+  renderTrackList(s.trackedFlights || []);
+}
+
+function gatherForm() {
+  return {
+    screenId,
+    mode: currentMode(),
+    home: {
+      lat: el('lat').value === '' ? null : Number(el('lat').value),
+      lon: el('lon').value === '' ? null : Number(el('lon').value),
+      label: el('homeLabel').value.trim(),
+    },
+    radiusNm: Number(el('radius').value),
+    sort: el('sort').value,
+    maxFlights: Number(el('maxFlights').value),
+    units: el('units').value,
+    theme: el('theme').value,
+    refreshSec: Number(el('refresh').value),
+    showRadar: el('showRadar').checked,
+    trackedFlights: [...document.querySelectorAll('.track-input')]
+      .map((i) => i.value.trim())
+      .filter(Boolean),
+  };
+}
+
+// --- Mode toggle -----------------------------------------------------------
+function currentMode() {
+  return document.querySelector('input[name="mode"]:checked')?.value || 'area';
+}
+function setMode(mode) {
+  document.querySelectorAll('input[name="mode"]').forEach((r) => (r.checked = r.value === mode));
+  applyMode(mode);
+}
+function applyMode(mode) {
+  el('areaSection').hidden = mode !== 'area';
+  el('trackSection').hidden = mode !== 'flight';
+}
+
+// --- Tracked flights -------------------------------------------------------
+function renderTrackList(list) {
+  const box = el('trackList');
+  box.innerHTML = '';
+  const items = list.length ? list : [''];
+  items.forEach((v) => addTrackRow(v));
+  updateAddBtn();
+}
+function addTrackRow(value = '') {
+  const box = el('trackList');
+  if (box.children.length >= 5) return;
+  const row = document.createElement('div');
+  row.className = 'track-row';
+  row.innerHTML = `
+    <input class="track-input" type="text" maxlength="8" placeholder="e.g. UAL245 or AA100" value="${value.replace(/"/g, '')}" />
+    <button type="button" class="ghost remove" title="Remove">✕</button>`;
+  row.querySelector('.remove').addEventListener('click', () => {
+    row.remove();
+    if (!el('trackList').children.length) addTrackRow('');
+    updateAddBtn();
+  });
+  box.appendChild(row);
+  updateAddBtn();
+}
+function updateAddBtn() {
+  el('addTrack').disabled = el('trackList').children.length >= 5;
+}
+
+// --- Save ------------------------------------------------------------------
+async function save() {
+  const pin = cfg.pinRequired ? el('pin').value.trim() : '';
+  if (cfg.pinRequired) localStorage.setItem(PIN_KEY, pin);
+  const payload = gatherForm();
+  setStatus('Saving…', '');
+  try {
+    settings = await saveSettings(screenId, payload, pin);
+    fillForm(settings);
+    setStatus('Saved ✓ — display will update shortly.', 'ok');
+    reloadPreview();
+  } catch (err) {
+    if (err.code === 'invalid-pin') setStatus('Incorrect PIN.', 'err');
+    else setStatus(`Save failed: ${err.message}`, 'err');
+  }
+}
+
+function setStatus(msg, kind) {
+  const s = el('saveStatus');
+  s.textContent = msg;
+  s.className = `save-status ${kind}`;
+  if (kind === 'ok') setTimeout(() => (s.textContent = ''), 4000);
+}
+
+// --- Links + preview -------------------------------------------------------
+function displayUrl() {
+  return `${location.origin}/display?screen=${encodeURIComponent(screenId)}`;
+}
+function updateLinks() {
+  el('displayUrl').textContent = displayUrl();
+  el('openDisplay').href = displayUrl();
+  reloadPreview();
+  sizePreview();
+}
+function reloadPreview() {
+  el('preview').src = displayUrl();
+}
+function sizePreview() {
+  const box = el('preview').parentElement;
+  if (box.clientWidth) el('preview').style.transform = `scale(${box.clientWidth / 1280})`;
+}
+
+// --- Wire up ---------------------------------------------------------------
+el('radius').addEventListener('input', (e) => {
+  el('radiusVal').textContent = `${e.target.value} NM`;
+});
+document.querySelectorAll('input[name="mode"]').forEach((r) =>
+  r.addEventListener('change', () => applyMode(currentMode()))
+);
+el('geoBtn').addEventListener('click', () => {
+  if (!navigator.geolocation) return setStatus('Geolocation not available.', 'err');
+  el('geoBtn').textContent = 'Locating…';
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      el('lat').value = pos.coords.latitude.toFixed(5);
+      el('lon').value = pos.coords.longitude.toFixed(5);
+      el('geoBtn').textContent = '📍 Use my location';
+    },
+    (err) => {
+      el('geoBtn').textContent = '📍 Use my location';
+      setStatus(`Location failed: ${err.message}`, 'err');
+    },
+    { enableHighAccuracy: false, timeout: 10000 }
+  );
+});
+el('addTrack').addEventListener('click', () => addTrackRow(''));
+el('saveBtn').addEventListener('click', save);
+el('screenSelect').addEventListener('change', (e) => {
+  history.replaceState(null, '', `?screen=${encodeURIComponent(e.target.value)}`);
+  loadScreen(e.target.value);
+});
+el('newScreen').addEventListener('click', () => {
+  const id = prompt('New screen id (letters, numbers, dashes):', '');
+  if (!id) return;
+  const clean = id.toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 32);
+  if (!clean) return;
+  const sel = el('screenSelect');
+  if (![...sel.options].some((o) => o.value === clean)) {
+    sel.appendChild(new Option(clean, clean));
+  }
+  sel.value = clean;
+  history.replaceState(null, '', `?screen=${encodeURIComponent(clean)}`);
+  loadScreen(clean);
+});
+el('copyBtn').addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(displayUrl());
+    el('copyBtn').textContent = 'Copied!';
+    setTimeout(() => (el('copyBtn').textContent = 'Copy'), 1500);
+  } catch {
+    setStatus('Copy failed — select the URL manually.', 'err');
+  }
+});
+
+window.addEventListener('resize', sizePreview);
+el('preview').addEventListener('load', sizePreview);
+
+boot().catch((err) => setStatus(`Failed to load: ${err.message}`, 'err'));

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a0a0b" />
+  <title>Flight Wall — Display</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/css/common.css?v=1" />
+  <link rel="stylesheet" href="/css/display.css?v=1" />
+</head>
+<body>
+  <div id="app" data-theme="departure" data-mode="area">
+    <header id="hdr">
+      <div class="brand"><span class="logo">✈</span> FLIGHT WALL</div>
+      <div class="ctx">
+        <span id="homeLabel" class="home"></span>
+        <span id="modeLabel" class="pill"></span>
+      </div>
+      <div class="right">
+        <span id="clock" class="clock">--:--:--</span>
+        <button id="fsBtn" class="fs" title="Toggle full screen" aria-label="Full screen">⛶</button>
+      </div>
+    </header>
+
+    <main id="main">
+      <section id="board" class="board"></section>
+      <aside id="radarWrap" class="radar" hidden>
+        <canvas id="radar"></canvas>
+        <div id="rangeLabel" class="range"></div>
+      </aside>
+    </main>
+
+    <footer id="foot">
+      <span id="status" class="status"></span>
+      <span id="count" class="count"></span>
+      <span id="stamp" class="stamp"></span>
+    </footer>
+  </div>
+  <script type="module" src="/js/display.js?v=1"></script>
+</body>
+</html>

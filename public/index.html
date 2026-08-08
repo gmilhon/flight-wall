@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0e1116" />
+  <title>Flight Wall — Control</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/css/common.css?v=1" />
+  <link rel="stylesheet" href="/css/control.css?v=1" />
+</head>
+<body>
+  <div class="wrap">
+    <header class="topbar">
+      <div class="title"><span class="logo">✈</span> Flight Wall <span class="sub">control</span></div>
+      <div class="badges">
+        <span class="badge">storage: <b id="storageBadge">…</b></span>
+        <a class="badge link" id="openDisplay" href="/display" target="_blank" rel="noopener">Open display ↗</a>
+      </div>
+    </header>
+
+    <div class="layout">
+      <form class="panel" id="form" autocomplete="off">
+        <div class="row">
+          <label>Screen</label>
+          <div class="screens-ctl">
+            <select id="screenSelect"></select>
+            <button type="button" class="ghost" id="newScreen">＋ New</button>
+          </div>
+        </div>
+
+        <div class="row" id="pinRow" hidden>
+          <label for="pin">Control PIN</label>
+          <input id="pin" type="password" inputmode="numeric" placeholder="required to save" />
+        </div>
+
+        <div class="row">
+          <label>Mode</label>
+          <div class="segmented" role="radiogroup" aria-label="Mode">
+            <label><input type="radio" name="mode" value="area" checked /><span>Area · overhead</span></label>
+            <label><input type="radio" name="mode" value="flight" /><span>Track flights</span></label>
+          </div>
+        </div>
+
+        <fieldset class="group">
+          <legend>Home location</legend>
+          <div class="grid2">
+            <div><label for="lat">Latitude</label><input id="lat" type="number" step="0.00001" placeholder="34.05" /></div>
+            <div><label for="lon">Longitude</label><input id="lon" type="number" step="0.00001" placeholder="-118.24" /></div>
+          </div>
+          <div class="row"><label for="homeLabel">Label</label><input id="homeLabel" type="text" maxlength="60" placeholder="Home" /></div>
+          <button type="button" class="ghost wide" id="geoBtn">📍 Use my location</button>
+        </fieldset>
+
+        <fieldset class="group" id="areaSection">
+          <legend>Area</legend>
+          <div class="row">
+            <label for="radius">Radius <span id="radiusVal" class="hint">15 NM</span></label>
+            <input id="radius" type="range" min="1" max="150" step="1" value="15" />
+          </div>
+          <div class="grid2">
+            <div>
+              <label for="sort">Sort by</label>
+              <select id="sort">
+                <option value="distance">Closest first</option>
+                <option value="altitude">Highest first</option>
+                <option value="speed">Fastest first</option>
+              </select>
+            </div>
+            <div>
+              <label for="maxFlights">Max flights</label>
+              <select id="maxFlights">
+                <option>1</option><option>2</option><option>3</option><option>4</option>
+                <option>5</option><option>6</option><option>7</option><option>8</option>
+              </select>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset class="group" id="trackSection" hidden>
+          <legend>Tracked flights <span class="hint">(up to 5)</span></legend>
+          <div id="trackList"></div>
+          <button type="button" class="ghost wide" id="addTrack">＋ Add flight</button>
+          <p class="hint">Enter a callsign (<code>UAL245</code>) or flight number (<code>AA100</code>).</p>
+        </fieldset>
+
+        <fieldset class="group">
+          <legend>Display</legend>
+          <div class="grid2">
+            <div>
+              <label for="units">Units</label>
+              <select id="units">
+                <option value="aviation">Aviation · ft, kt, NM</option>
+                <option value="metric">Metric · m, km/h, km</option>
+                <option value="imperial">Imperial · ft, mph, mi</option>
+              </select>
+            </div>
+            <div>
+              <label for="theme">Theme</label>
+              <select id="theme">
+                <option value="departure">Departure board</option>
+                <option value="radar">Radar · green</option>
+                <option value="minimal">Minimal</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid2">
+            <div>
+              <label for="refresh">Refresh (sec)</label>
+              <select id="refresh">
+                <option>5</option><option>10</option><option>15</option>
+                <option>20</option><option>30</option><option>45</option><option>60</option>
+              </select>
+            </div>
+            <div class="check"><label><input type="checkbox" id="showRadar" /> Show radar</label></div>
+          </div>
+        </fieldset>
+
+        <div class="actions">
+          <button type="button" class="primary" id="saveBtn">Save &amp; apply</button>
+          <span id="saveStatus" class="save-status"></span>
+        </div>
+      </form>
+
+      <aside class="preview-pane">
+        <div class="preview-head">Live preview</div>
+        <div class="preview-box"><iframe id="preview" title="Display preview" src="/display"></iframe></div>
+        <div class="urlbar">
+          <code id="displayUrl">/display</code>
+          <button type="button" class="ghost" id="copyBtn">Copy</button>
+        </div>
+        <p class="hint">Point your Raspberry Pi / media-player browser at this URL in full-screen (kiosk) mode.</p>
+      </aside>
+    </div>
+  </div>
+  <script type="module" src="/js/control.js?v=1"></script>
+</body>
+</html>
