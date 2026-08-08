@@ -78,6 +78,8 @@ Firestore (on Cloud Run) so you can control the display from anywhere.
 - **Live map** (or a retro **radar**): aircraft plotted on a dark map centred on
   your location, with a range ring, heading-oriented markers, and callsign tags.
   Map tiles are proxied through the app so they load even on ad-blocked networks.
+- **Cycle mode**: swap the multi-row board for a single full-screen flight that
+  auto-cycles every few seconds — the classic flight-wall presentation.
 - **Tracked-flight alerts**: a chime and an on-screen banner when a flight you're
   tracking comes into range.
 - **Live ATC audio** (optional): play up to 4 airport feeds, each panned

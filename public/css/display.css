@@ -82,7 +82,7 @@
 .flightno .cs.cs-name { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-family: system-ui, sans-serif; } /* airline-name title can shrink */
 .flightno .airline { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: system-ui, sans-serif; font-weight: 600; font-size: 0.46em; color: var(--muted); letter-spacing: 0; }
 .flightno .emerg { flex: 0 0 auto; font-size: 0.42em; color: #ff4d4d; border: 1px solid #ff4d4d; border-radius: 4px; padding: 0 0.3em; text-transform: uppercase; }
-.flightno .seen-badge { flex: 0 0 auto; font-family: system-ui, sans-serif; font-weight: 700; font-size: 0.4em; letter-spacing: 0.02em; color: var(--accent2); border: 1px solid var(--accent2); border-radius: 999px; padding: 0.05em 0.55em; white-space: nowrap; }
+.seen-badge { flex: 0 0 auto; font-family: system-ui, sans-serif; font-weight: 700; font-size: 0.4em; letter-spacing: 0.02em; color: var(--accent2); border: 1px solid var(--accent2); border-radius: 999px; padding: 0.05em 0.55em; white-space: nowrap; }
 .route { margin-top: 0.2em; font-size: clamp(0.72rem, min(15cqh, 1.4vw), 1.3rem); color: var(--text); display: flex; align-items: baseline; gap: 0.4em; white-space: nowrap; overflow: hidden; }
 .route .ap { font-family: var(--num-font); font-weight: 700; letter-spacing: 0.05em; }
 .route .arrow { color: var(--accent2); }
@@ -120,6 +120,35 @@
 .empty .big { font-size: clamp(1.4rem, 4vw, 3rem); font-weight: 800; letter-spacing: 0.08em; color: var(--text); }
 .empty .sub { font-size: clamp(0.9rem, 1.8vw, 1.3rem); }
 .empty .url { font-family: var(--mono); color: var(--accent); margin-top: 0.4rem; }
+
+/* ---- Cycle mode (single flight, auto-cycling) ---- */
+#app[data-layout='cycle'] #main { grid-template-columns: minmax(0, 1fr); }
+.cycle {
+  height: 100%; display: flex; flex-direction: column; justify-content: center;
+  gap: clamp(1rem, 4vh, 3rem); padding: clamp(0.5rem, 3vw, 3rem);
+  animation: cyc-in 0.45s ease;
+}
+@keyframes cyc-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.cyc-head { display: flex; align-items: center; gap: clamp(1rem, 3vw, 2.5rem); min-width: 0; }
+.cyc-icon { flex: 0 0 auto; width: clamp(48px, min(15vh, 13vw), 170px); height: clamp(48px, min(15vh, 13vw), 170px); }
+.cyc-icon svg { width: 100%; height: 100%; display: block; }
+.cyc-title { flex: 1 1 auto; min-width: 0; }
+.cyc-name { font-family: var(--num-font); font-weight: 800; font-size: clamp(1.8rem, min(9vh, 7vw), 6rem); line-height: 1; letter-spacing: 0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: baseline; gap: 0.35em; }
+.cyc-sub { display: flex; align-items: center; gap: 0.6em; margin-top: 0.4em; font-size: clamp(0.9rem, min(3.6vh, 2.6vw), 2.4rem); min-width: 0; }
+.cyc-sub .route { font-size: 1em; min-width: 0; }
+.cyc-sub .airline-pill { font-size: 0.62em; }
+.cyc-model { margin-top: 0.35em; color: var(--muted); font-family: var(--num-font); font-size: clamp(0.8rem, 2.2vh, 1.5rem); }
+.cyc-logo { flex: 0 0 auto; display: flex; align-items: center; }
+.cyc-logo .logo-box { height: clamp(48px, 13vh, 140px); }
+.cyc-logo .logo-img { background: #fff; border-radius: 10px; padding: 6px; max-height: 100%; max-width: clamp(90px, 18vw, 240px); object-fit: contain; }
+.cyc-logo svg { max-height: clamp(48px, 13vh, 140px); border-radius: 12px; }
+.cyc-metrics { display: flex; justify-content: space-between; gap: clamp(0.5rem, 2vw, 2rem); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: clamp(0.8rem, 3vh, 2rem) 0; }
+.cyc-metric { display: flex; flex-direction: column; gap: 0.3em; min-width: 0; }
+.cyc-metric label { font-size: clamp(0.55rem, 1.6vh, 1rem); letter-spacing: 0.14em; color: var(--dim); text-transform: uppercase; }
+.cyc-metric span { font-family: var(--num-font); font-weight: 700; font-size: clamp(1rem, min(5vh, 3.4vw), 3.2rem); white-space: nowrap; }
+.cyc-progress { display: flex; justify-content: center; gap: 0.5rem; flex-wrap: wrap; }
+.cyc-dot { width: 0.7rem; height: 0.7rem; border-radius: 50%; background: var(--line); }
+.cyc-dot.on { background: var(--fc, var(--accent)); }
 
 /* ---- Side panel: map / radar ---- */
 .side { position: relative; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; min-height: 0; }

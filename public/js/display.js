@@ -29,6 +29,9 @@ let refreshSec = 10;
 let pollTimer = null;
 let firstLoad = true;
 let liveTracked = new Set(); // callsigns/queries currently live (flight mode)
+let cycleIndex = 0;
+let cycleTimer = null;
+let cycleKey = '';
 
 const cssVar = (name) => getComputedStyle(app).getPropertyValue(name).trim();
 
@@ -137,11 +140,68 @@ function flightCard(f, u) {
   </article>`;
 }
 
+// --- Cycle mode (single flight, auto-cycling) ------------------------------
+function cycMetric(label, value) {
+  return `<div class="cyc-metric"><label>${label}</label><span>${escapeHtml(value)}</span></div>`;
+}
+function cycleCard(f, u, idx, total) {
+  const priv = isPrivateFlight(f);
+  const color = priv ? PRIVATE_COLOR : (airlineColor(f.airline) || cssVar('--accent'));
+  const callsign = f.callsign || f.hex || '—';
+  const airlineTitle = settings.titleMode === 'airline' && !priv;
+  const title = airlineTitle ? shortAirlineName(f.airline.name) : callsign;
+  const pill = priv
+    ? `<span class="airline-pill private">Private</span>`
+    : `<span class="airline-pill" style="background:${color};color:${textOn(color)}">${escapeHtml(airlineTitle ? callsign : shortAirlineName(f.airline.name))}</span>`;
+  const model = f.aircraft?.name || f.aircraft?.code || '';
+  const seen = f.seenCount > 1 ? `<span class="seen-badge">★ ${f.seenCount}</span>` : '';
+  const logo = priv ? '' : logoHtml(f, color);
+  const dots = Array.from({ length: total }, (_, i) => `<span class="cyc-dot${i === idx ? ' on' : ''}"></span>`).join('');
+  return `<div class="cycle" style="--fc:${color}">
+    <div class="cyc-head">
+      <div class="cyc-icon" style="color:${color}">${aircraftIconSvg(f.acCategory || 'narrowbody')}</div>
+      <div class="cyc-title">
+        <div class="cyc-name">${escapeHtml(title)}${seen}</div>
+        <div class="cyc-sub">${pill}${priv ? ownerHtml(f) : routeHtml(f, u)}</div>
+        ${model ? `<div class="cyc-model">${escapeHtml(model)}</div>` : ''}
+      </div>
+      ${logo ? `<div class="cyc-logo">${logo}</div>` : ''}
+    </div>
+    <div class="cyc-metrics">
+      ${cycMetric('ALTITUDE', fmtAltitude(f.altFt, u.alt, f.onGround))}
+      ${cycMetric('SPEED', fmtSpeed(f.gsKt, u.spd))}
+      ${cycMetric('TRACK', fmtTrack(f.trackDeg))}
+      ${cycMetric('VERT RATE', fmtVert(f.vertFpm, u.vert))}
+      ${cycMetric('DISTANCE', fmtDistance(f.distanceKm, u.dist))}
+    </div>
+    <div class="cyc-progress">${dots}</div>
+  </div>`;
+}
+function renderCycle() {
+  const list = flights.filter((f) => f.status !== 'not-found');
+  if (!list.length) {
+    board.innerHTML = `<div class="empty"><div class="big">No aircraft in range</div></div>`;
+    return;
+  }
+  if (cycleIndex >= list.length) cycleIndex = 0;
+  board.innerHTML = cycleCard(list[cycleIndex], resolveUnits(settings), cycleIndex, list.length);
+}
+function scheduleCycle() {
+  if (cycleTimer) { clearInterval(cycleTimer); cycleTimer = null; }
+  if (settings?.layout === 'cycle') {
+    cycleTimer = setInterval(() => {
+      const list = flights.filter((f) => f.status !== 'not-found');
+      if (list.length) { cycleIndex = (cycleIndex + 1) % list.length; renderCycle(); }
+    }, Math.max(2, settings.cycleSec || 5) * 1000);
+  }
+}
+
 // --- Main render -----------------------------------------------------------
 function render() {
   if (!settings) return;
   app.dataset.theme = settings.theme || 'departure';
   app.dataset.mode = settings.mode || 'area';
+  app.dataset.layout = settings.layout || 'board';
 
   const homeLabel = settings.home?.label || (settings.home?.lat != null
     ? `${settings.home.lat.toFixed(2)}, ${settings.home.lon.toFixed(2)}` : '');
@@ -151,7 +211,8 @@ function render() {
   const u = resolveUnits(settings);
   const noHome = settings.mode === 'area' && settings.home?.lat == null;
   const positioned = flights.filter((f) => f.lat != null && f.lon != null);
-  const wantSide = settings.sidePanel && settings.sidePanel !== 'off' && !noHome && positioned.length > 0;
+  const cycle = settings.layout === 'cycle';
+  const wantSide = !cycle && settings.sidePanel && settings.sidePanel !== 'off' && !noHome && positioned.length > 0;
   const useMap = wantSide && settings.sidePanel === 'map' && hasLeaflet;
   const useRadar = wantSide && !useMap; // radar, or map fallback if Leaflet missing
 
@@ -168,6 +229,8 @@ function render() {
   } else if (!flights.length) {
     board.innerHTML = `<div class="empty"><div class="big">${settings.mode === 'flight' ? 'No tracked flights' : 'No aircraft overhead'}</div>
       <div class="sub">${settings.mode === 'flight' ? 'Add flights in the control panel.' : `Watching a ${settings.radiusNm} NM radius. Standing by…`}</div></div>`;
+  } else if (cycle) {
+    renderCycle();
   } else {
     board.innerHTML = flights.map((f) => flightCard(f, u)).join('');
   }
@@ -357,6 +420,8 @@ async function poll() {
     firstLoad = false;
     if (atc) atc.apply(settings.audio);
     if (settings.refreshSec && settings.refreshSec !== refreshSec) { refreshSec = settings.refreshSec; schedule(); }
+    const ck = `${settings.layout}|${settings.cycleSec}`;
+    if (ck !== cycleKey) { cycleKey = ck; scheduleCycle(); }
     render();
   } catch (err) {
     updateStatus();

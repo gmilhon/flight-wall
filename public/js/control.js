@@ -53,6 +53,8 @@ function fillForm(s) {
   el('distUnit').value = s.distUnit || 'auto';
   el('refresh').value = s.refreshSec;
   el('sidePanel').value = s.sidePanel || 'map';
+  el('layout').value = s.layout || 'board';
+  el('cycleSec').value = s.cycleSec || 5;
   el('showLogos').checked = s.showLogos !== false;
   el('showAircraftIcons').checked = s.showAircraftIcons !== false;
   el('alertOnAppear').checked = s.alertOnAppear !== false;
@@ -86,6 +88,8 @@ function gatherForm() {
     theme: el('theme').value,
     refreshSec: Number(el('refresh').value),
     sidePanel: el('sidePanel').value,
+    layout: el('layout').value,
+    cycleSec: Number(el('cycleSec').value),
     showLogos: el('showLogos').checked,
     showAircraftIcons: el('showAircraftIcons').checked,
     alertOnAppear: el('alertOnAppear').checked,

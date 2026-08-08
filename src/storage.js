@@ -31,6 +31,8 @@ export function defaultSettings(screenId = DEFAULT_SCREEN_ID) {
     theme: 'departure', // 'departure' | 'radar' | 'minimal'
     refreshSec: 10,
     sidePanel: 'map', // 'map' | 'radar' | 'off'
+    layout: 'board', // 'board' (multi-row) | 'cycle' (single flight, auto-cycling)
+    cycleSec: 5, // seconds each flight shows in cycle mode
     showLogos: true,
     showAircraftIcons: true,
     alertOnAppear: true, // sound/visual alert when a tracked flight appears
@@ -56,6 +58,7 @@ const ONE_OF = {
   sort: ['distance', 'altitude', 'speed'],
   theme: ['departure', 'radar', 'minimal'],
   sidePanel: ['map', 'radar', 'off'],
+  layout: ['board', 'cycle'],
   titleMode: ['flight', 'airline'],
   altUnit: ['auto', 'aviation', 'ft', 'm', 'km'],
   spdUnit: ['auto', 'kt', 'kmh', 'mph', 'ms'],
@@ -167,6 +170,8 @@ export function sanitizeSettings(input, base) {
       ONE_OF.sidePanel,
       src.sidePanel === undefined && src.showRadar === false ? 'off' : d.sidePanel
     ),
+    layout: pick(src.layout, ONE_OF.layout, d.layout),
+    cycleSec: Math.round(clamp(num(src.cycleSec, d.cycleSec), 2, 30)),
     showLogos: src.showLogos === undefined ? d.showLogos : Boolean(src.showLogos),
     showAircraftIcons: src.showAircraftIcons === undefined ? d.showAircraftIcons : Boolean(src.showAircraftIcons),
     alertOnAppear: src.alertOnAppear === undefined ? d.alertOnAppear : Boolean(src.alertOnAppear),
