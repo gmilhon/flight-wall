@@ -124,6 +124,7 @@ async function enrich(f) {
     code: f.typeCode || acDetail?.icaoType || null,
     name: f.typeDesc || acDetail?.type || null,
     manufacturer: acDetail?.manufacturer || null,
+    owner: acDetail?.owner || null,
   };
   return f;
 }

@@ -63,6 +63,26 @@ export function airlineIata(airline) {
   return BRAND[icao]?.i || ICAO2IATA[icao] || null;
 }
 
+/** Shorten an airline name for a compact pill: "SkyWest Airlines" -> "SkyWest". */
+export function shortAirlineName(name) {
+  if (!name) return name;
+  return name.replace(/\s+(air\s?lines?|airways|air)$/i, '').trim() || name;
+}
+
+/** A readable text colour (#111 or #fff) for text placed on `color`. */
+export function textOn(color) {
+  if (!color) return '#fff';
+  if (color.startsWith('hsl')) {
+    const m = /hsl\(\s*[\d.]+[,\s]+[\d.]+%[,\s]+([\d.]+)%/.exec(color);
+    return m && parseFloat(m[1]) > 62 ? '#111827' : '#fff';
+  }
+  let h = color.replace('#', '');
+  if (h.length === 3) h = h.split('').map((c) => c + c).join('');
+  const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+  const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return lum > 0.62 ? '#111827' : '#fff';
+}
+
 /** avs.io logo URL for an IATA code, or null. */
 export function airlineLogoUrl(iata, w = 120, h = 120) {
   if (!iata) return null;

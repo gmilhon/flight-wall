@@ -144,7 +144,7 @@ This endpoint always returns `200`. Data problems are reported via `error` (with
   "airline": { "name": "United Airlines", "icao": "UAL", "iata": "UA" },
   "origin":      { "iata": "SFO", "icao": "KSFO", "name": "San Francisco Intl", "city": "San Francisco" },
   "destination": { "iata": "JFK", "icao": "KJFK", "name": "John F Kennedy Intl", "city": "New York" },
-  "aircraft": { "code": "B739", "name": "Boeing 737-900", "manufacturer": "Boeing" },
+  "aircraft": { "code": "B739", "name": "Boeing 737-900", "manufacturer": "Boeing", "owner": "…" },
   "distanceKm": 7.8, "bearingDeg": 63,
   "status": "live"
 }

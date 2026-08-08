@@ -4,7 +4,7 @@ import {
   escapeHtml, fmtAltitude, fmtSpeed, fmtVert, fmtDistance, fmtTrack,
   distanceUnitLabel, pad2,
 } from './format.js';
-import { airlineColor, airlineIata, airlineLogoUrl, airlineMonogram } from './airline-brand.js';
+import { airlineColor, airlineIata, airlineLogoUrl, airlineMonogram, textOn, shortAirlineName } from './airline-brand.js';
 import { aircraftCategory, aircraftIconSvg } from './aircraft-silhouettes.js';
 
 const screenId = new URLSearchParams(location.search).get('screen') || 'main';
@@ -74,24 +74,45 @@ function iconHtml(f, color) {
   return `<div class="ac-icon" style="color:${color}">${aircraftIconSvg(cat)}</div>`;
 }
 
+const PRIVATE_COLOR = '#8b98a8';
+
+function ownerHtml(f) {
+  const owner = f.aircraft?.owner;
+  return owner
+    ? `<div class="route owner">${escapeHtml(owner)}</div>`
+    : `<div class="route muted">Private aircraft</div>`;
+}
+
+function isPrivateFlight(f) {
+  return !(f.airline && f.airline.name);
+}
+
 function flightCard(f, units) {
   if (f.status === 'not-found') {
     return `<article class="flight not-found">
       <div class="ident"><div class="flightno"><span class="cs">${escapeHtml(f.callsign || f.query || '—')}</span></div>
-      <div class="route muted">Awaiting signal…</div></div>
+      <div class="subline"><span class="airline-pill private">Tracking</span><span class="route muted">Awaiting signal…</span></div></div>
       <div class="await">NO SIGNAL</div>
     </article>`;
   }
-  const color = airlineColor(f.airline) || cssVar('--accent');
+  const priv = isPrivateFlight(f);
+  const color = priv ? PRIVATE_COLOR : (airlineColor(f.airline) || cssVar('--accent'));
   const callsign = f.callsign || f.hex || '—';
-  const airline = f.airline?.name ? `<span class="airline">${escapeHtml(f.airline.name)}</span>` : '';
-  const type = f.aircraft?.name || f.aircraft?.code || '';
   const emerg = f.emergency ? `<span class="emerg">${escapeHtml(f.emergency)}</span>` : '';
+  const model = f.aircraft?.name || f.aircraft?.code || '';
+  const pill = priv
+    ? `<span class="airline-pill private">Private</span>`
+    : `<span class="airline-pill" style="background:${color};color:${textOn(color)}">${escapeHtml(shortAirlineName(f.airline.name))}</span>`;
+  const icon = iconHtml(f, color);
+  const acCol = (icon || model)
+    ? `<div class="ac-col">${icon}${model ? `<div class="ac-model">${escapeHtml(model)}</div>` : ''}</div>`
+    : '';
+  const logo = priv ? '' : logoHtml(f, color);
   return `<article class="flight" style="--fc:${color}">
-    ${iconHtml(f, color)}
+    ${acCol}
     <div class="ident">
-      <div class="flightno"><span class="cs">${escapeHtml(callsign)}</span>${airline}${emerg}</div>
-      ${routeHtml(f, units)}
+      <div class="flightno"><span class="cs">${escapeHtml(callsign)}</span>${emerg}</div>
+      <div class="subline">${pill}${priv ? ownerHtml(f) : routeHtml(f, units)}</div>
     </div>
     <div class="metrics">
       ${metric('ALT', fmtAltitude(f.altFt, units, f.onGround))}
@@ -100,10 +121,7 @@ function flightCard(f, units) {
       ${metric('V/S', fmtVert(f.vertFpm, units))}
       ${metric('DIST', fmtDistance(f.distanceKm, units))}
     </div>
-    <div class="tail">
-      ${logoHtml(f, color)}
-      <div class="actype">${escapeHtml(type)}</div>
-    </div>
+    ${logo ? `<div class="tail">${logo}</div>` : ''}
   </article>`;
 }
 

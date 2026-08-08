@@ -67,9 +67,10 @@ Firestore (on Cloud Run) so you can control the display from anywhere.
   city names) resolved from the callsign.
 - **Aircraft enrichment**: type code, model, and manufacturer from the
   registration, with an offline airline fallback derived from the callsign.
-- **Visual identity**: a per-airline **colour**, the airline **logo**, and a
-  **type silhouette** (widebody, regional jet, turboprop, helicopter, GA, …) on
-  every card and map marker.
+- **Visual identity**: a per-airline **colour pill**, the airline **logo**, and a
+  **type silhouette** (widebody, regional jet, turboprop, helicopter, GA, …) with
+  the aircraft model, on every card and map marker. Non-airline traffic is
+  labelled **"Private"** with the registered **owner**.
 
 **Made for a wall**
 - Three themes: **Departure board** (amber split-flap vibe), **Radar** (green CRT
