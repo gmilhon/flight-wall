@@ -17,6 +17,7 @@ import {
   DEFAULT_SCREEN_ID,
 } from './storage.js';
 import { getFlightsForScreen } from './flights.js';
+import { listSightings, resetSightings } from './sightings.js';
 
 const APP_VERSION = '1.0.0';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -101,6 +102,25 @@ app.get('/api/state', async (req, res, next) => {
       console.error('[state] flight fetch failed:', err.message);
     }
     res.json({ settings, flights, note, error, generatedAt: Date.now() });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Repeat tail-number counts for a screen (the "regulars").
+app.get('/api/sightings', async (req, res, next) => {
+  try {
+    const screen = screenOf(req);
+    res.json({ screen, tails: await listSightings(screen), generatedAt: Date.now() });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.delete('/api/sightings', requirePin, async (req, res, next) => {
+  try {
+    await resetSightings(screenOf(req));
+    res.json({ ok: true });
   } catch (err) {
     next(err);
   }

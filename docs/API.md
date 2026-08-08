@@ -41,6 +41,19 @@ feeds). Only URLs present in that screen's `audio.channels` are forwarded, so it
 is not an open proxy; loopback/private hosts are refused. See
 [ATC_AUDIO.md](ATC_AUDIO.md) and note LiveATC's terms before proxying their feeds.
 
+## `GET /api/sightings?screen=<id>` · `DELETE /api/sightings?screen=<id>`
+
+`GET` returns a screen's repeat tail-number counts (the "regulars"), sorted by
+count then most-recent:
+
+```json
+{ "screen": "main", "tails": [ { "reg": "N123AB", "count": 4, "firstSeen": 0, "lastSeen": 0 } ], "generatedAt": 0 }
+```
+
+A new visit is counted only after more than an hour since a tail was last seen
+(configurable via `SIGHTING_DEBOUNCE_MS`). Counts accumulate while the screen is
+being polled. `DELETE` clears them (PIN required if configured).
+
 ## `GET /api/screens`
 
 List known screen ids.
@@ -94,6 +107,7 @@ curl "$BASE/api/settings?screen=main"
 | `showLogos` | boolean | | Airline logos on cards. |
 | `showAircraftIcons` | boolean | | Aircraft type silhouettes. |
 | `alertOnAppear` | boolean | | Chime + banner when a tracked flight appears. |
+| `showSightings` | boolean | | Count repeat tail numbers and badge them. |
 | `trackedFlights` | string[] | ≤ 5 | Callsigns/flight numbers (flight mode). |
 | `audio` | object | | `{ enabled, volume: 0..1, channels[] }`. Up to 4 channels, each `{ label, url, pan: left\|center\|right, volume: 0..1, proxy }`. |
 
@@ -155,6 +169,7 @@ This endpoint always returns `200`. Data problems are reported via `error` (with
   "destination": { "iata": "JFK", "icao": "KJFK", "name": "John F Kennedy Intl", "city": "New York" },
   "aircraft": { "code": "B739", "name": "Boeing 737-900", "manufacturer": "Boeing", "owner": "…" },
   "distanceKm": 7.8, "bearingDeg": 63,
+  "seenCount": 4,
   "status": "live"
 }
 ```

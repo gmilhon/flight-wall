@@ -84,6 +84,9 @@ Firestore (on Cloud Run) so you can control the display from anywhere.
   left / center / right — hear two airports in stereo. Works with LiveATC
   (personal use, via a built-in proxy) or your own RTL-SDR. See
   [docs/ATC_AUDIO.md](docs/ATC_AUDIO.md).
+- **Frequent flyers**: each screen counts how many separate times a tail number
+  has come into view (visits ≥ 1 hour apart) and badges repeat visitors on the
+  board — with a "regulars" leaderboard in the control panel.
 - Card text auto-scales (CSS container queries) so 1–8 flights fit any screen
   from a 7″ Pi panel to a 4K TV without scrolling.
 - Kiosk niceties: one-click full screen, auto-hiding cursor, and it keeps showing
@@ -306,6 +309,7 @@ Full details and examples in **[`docs/API.md`](docs/API.md)**.
 | `GET` | `/api/config` | Server info (version, whether a PIN is required, storage). |
 | `GET` | `/api/map/{z}/{x}/{y}` | Proxied + cached dark map tiles for the display. |
 | `GET` | `/api/audio-proxy?screen=&url=` | Streams a configured ATC audio channel with CORS (for panning). |
+| `GET` `DELETE` | `/api/sightings?screen=` | Repeat tail-number counts for a screen (DELETE resets; PIN). |
 | `GET` | `/health` | Health check. |
 
 ---

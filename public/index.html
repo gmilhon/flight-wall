@@ -125,6 +125,7 @@
             <label><input type="checkbox" id="showLogos" /> Airline logos</label>
             <label><input type="checkbox" id="showAircraftIcons" /> Aircraft icons</label>
             <label><input type="checkbox" id="alertOnAppear" /> Alert when a tracked flight appears</label>
+            <label><input type="checkbox" id="showSightings" /> Count repeat aircraft (tail numbers)</label>
           </div>
         </fieldset>
 
@@ -140,6 +141,15 @@
             <button type="button" class="ghost" id="exampleAudio">Load DFW + Alliance example</button>
           </div>
           <p class="hint">Up to 4 channels, panned Left / Center / Right (e.g. two airports in stereo). Public feeds like LiveATC need <b>Proxy</b> on. Note: <a href="https://www.liveatc.net/legal/" target="_blank" rel="noopener">LiveATC prohibits third‑party use</a> — for personal listening only; the clean, legal path is an RTL‑SDR (see <a href="https://github.com/gmilhon/flight-wall/blob/main/docs/ATC_AUDIO.md" target="_blank" rel="noopener">docs/ATC_AUDIO.md</a>).</p>
+        </fieldset>
+
+        <fieldset class="group">
+          <legend>Regulars <span class="hint">most-seen tail numbers here</span></legend>
+          <div id="regularsList" class="regulars">—</div>
+          <div class="audio-actions">
+            <button type="button" class="ghost" id="refreshRegulars">↻ Refresh</button>
+            <button type="button" class="ghost" id="resetRegulars">Reset counts</button>
+          </div>
         </fieldset>
 
         <div class="actions">

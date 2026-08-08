@@ -32,6 +32,7 @@ export function defaultSettings(screenId = DEFAULT_SCREEN_ID) {
     showLogos: true,
     showAircraftIcons: true,
     alertOnAppear: true, // sound/visual alert when a tracked flight appears
+    showSightings: true, // count repeat tail numbers and badge them
     trackedFlights: [], // up to 5 callsigns / flight numbers
     // Live ATC audio. Channels can be panned left/center/right (e.g. two airports
     // in stereo). See docs/ATC_AUDIO.md for sources and terms.
@@ -137,6 +138,7 @@ export function sanitizeSettings(input, base) {
     showLogos: src.showLogos === undefined ? d.showLogos : Boolean(src.showLogos),
     showAircraftIcons: src.showAircraftIcons === undefined ? d.showAircraftIcons : Boolean(src.showAircraftIcons),
     alertOnAppear: src.alertOnAppear === undefined ? d.alertOnAppear : Boolean(src.alertOnAppear),
+    showSightings: src.showSightings === undefined ? d.showSightings : Boolean(src.showSightings),
     trackedFlights: tracked,
     audio: cleanAudio(src.audio, d.audio),
     updatedAt: Date.now(),
@@ -147,54 +149,44 @@ export function sanitizeSettings(input, base) {
 // Backends
 // ---------------------------------------------------------------------------
 
+// Backends are generic key/value stores over a named "store" (collection/file),
+// so settings and sightings share one backend in different namespaces.
 function makeMemoryBackend() {
-  const store = new Map();
+  const stores = new Map();
+  const s = (name) => {
+    if (!stores.has(name)) stores.set(name, new Map());
+    return stores.get(name);
+  };
   return {
     kind: 'memory',
-    async get(id) {
-      return store.get(id) || null;
-    },
-    async set(id, settings) {
-      store.set(id, settings);
-    },
-    async list() {
-      return [...store.keys()];
-    },
+    async get(store, id) { return s(store).get(id) || null; },
+    async set(store, id, value) { s(store).set(id, value); },
+    async list(store) { return [...s(store).keys()]; },
   };
 }
 
 function makeFileBackend() {
-  const file = path.resolve(config.dataDir, 'screens.json');
-  let ready = null;
-
-  async function load() {
+  const fileFor = (store) => path.resolve(config.dataDir, `${store}.json`);
+  async function load(store) {
     try {
-      const raw = await fs.readFile(file, 'utf8');
-      return JSON.parse(raw);
+      return JSON.parse(await fs.readFile(fileFor(store), 'utf8'));
     } catch {
       return {};
     }
   }
-  async function save(all) {
-    await fs.mkdir(path.dirname(file), { recursive: true });
-    await fs.writeFile(file, JSON.stringify(all, null, 2));
+  async function save(store, all) {
+    await fs.mkdir(config.dataDir, { recursive: true });
+    await fs.writeFile(fileFor(store), JSON.stringify(all, null, 2));
   }
-
   return {
     kind: 'file',
-    async get(id) {
-      const all = await load();
-      return all[id] || null;
+    async get(store, id) { return (await load(store))[id] || null; },
+    async set(store, id, value) {
+      const all = await load(store);
+      all[id] = value;
+      await save(store, all);
     },
-    async set(id, settings) {
-      const all = await load();
-      all[id] = settings;
-      await save(all);
-    },
-    async list() {
-      return Object.keys(await load());
-    },
-    _ready: ready,
+    async list(store) { return Object.keys(await load(store)); },
   };
 }
 
@@ -203,20 +195,19 @@ async function makeFirestoreBackend() {
   const db = new Firestore(
     config.projectId ? { projectId: config.projectId } : {}
   );
-  const col = db.collection(config.firestoreCollection);
   // Probe once so we can fail fast and fall back if Firestore isn't reachable.
-  await col.limit(1).get();
+  await db.collection(config.firestoreCollection).limit(1).get();
   return {
     kind: 'firestore',
-    async get(id) {
-      const snap = await col.doc(id).get();
+    async get(store, id) {
+      const snap = await db.collection(store).doc(id).get();
       return snap.exists ? snap.data() : null;
     },
-    async set(id, settings) {
-      await col.doc(id).set(settings);
+    async set(store, id, value) {
+      await db.collection(store).doc(id).set(value);
     },
-    async list() {
-      const snap = await col.get();
+    async list(store) {
+      const snap = await db.collection(store).get();
       return snap.docs.map((d) => d.id);
     },
   };
@@ -225,6 +216,9 @@ async function makeFirestoreBackend() {
 // ---------------------------------------------------------------------------
 // Public API (backend-agnostic, with a short read cache)
 // ---------------------------------------------------------------------------
+
+const SCREENS = config.firestoreCollection || 'screens';
+const SIGHTINGS = config.sightingsCollection || 'sightings';
 
 let backend = null;
 let backendKind = 'unknown';
@@ -261,7 +255,7 @@ export async function getScreen(screenId) {
   const hit = cache.get(id);
   if (hit && Date.now() - hit.at < CACHE_MS) return hit.settings;
 
-  let stored = await backend.get(id);
+  let stored = await backend.get(SCREENS, id);
   if (!stored) stored = defaultSettings(id);
   // Merge stored over defaults so new fields appear for old documents.
   const settings = { ...defaultSettings(id), ...stored, screenId: id };
@@ -273,14 +267,22 @@ export async function saveScreen(screenId, input) {
   const id = cleanScreenId(screenId);
   const current = await getScreen(id);
   const settings = sanitizeSettings({ ...input, screenId: id }, current);
-  await backend.set(id, settings);
+  await backend.set(SCREENS, id, settings);
   cache.set(id, { settings, at: Date.now() });
   return settings;
 }
 
 export async function listScreens() {
-  const ids = await backend.list();
+  const ids = await backend.list(SCREENS);
   return ids.length ? ids : [DEFAULT_SCREEN_ID];
+}
+
+// Sightings persistence (separate namespace; driven by src/sightings.js).
+export async function loadSightings(screenId) {
+  return backend.get(SIGHTINGS, cleanScreenId(screenId));
+}
+export async function storeSightings(screenId, data) {
+  await backend.set(SIGHTINGS, cleanScreenId(screenId), data);
 }
 
 export function cleanScreenId(id) {

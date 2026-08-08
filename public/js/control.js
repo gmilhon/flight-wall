@@ -1,5 +1,5 @@
 // Control panel: edit a screen's settings and push them to the display.
-import { getConfig, getScreens, getSettings, saveSettings } from './api.js';
+import { getConfig, getScreens, getSettings, saveSettings, getSightings, resetSightings } from './api.js';
 
 const el = (id) => document.getElementById(id);
 const PIN_KEY = 'flightwall.pin';
@@ -31,6 +31,7 @@ async function loadScreen(id) {
   settings = await getSettings(id);
   fillForm(settings);
   updateLinks();
+  loadRegulars();
 }
 
 // --- Form <-> settings -----------------------------------------------------
@@ -50,6 +51,7 @@ function fillForm(s) {
   el('showLogos').checked = s.showLogos !== false;
   el('showAircraftIcons').checked = s.showAircraftIcons !== false;
   el('alertOnAppear').checked = s.alertOnAppear !== false;
+  el('showSightings').checked = s.showSightings !== false;
   renderTrackList(s.trackedFlights || []);
   const audio = s.audio || { enabled: false, volume: 0.8, channels: [] };
   el('audioEnabled').checked = !!audio.enabled;
@@ -76,6 +78,7 @@ function gatherForm() {
     showLogos: el('showLogos').checked,
     showAircraftIcons: el('showAircraftIcons').checked,
     alertOnAppear: el('alertOnAppear').checked,
+    showSightings: el('showSightings').checked,
     trackedFlights: [...document.querySelectorAll('.track-input')]
       .map((i) => i.value.trim())
       .filter(Boolean),
@@ -178,6 +181,51 @@ function loadAudioExample() {
   el('audioEnabled').checked = true;
 }
 
+// --- Regulars (repeat tail numbers) ----------------------------------------
+function timeAgo(ts) {
+  if (!ts) return '';
+  const s = Math.max(0, Date.now() - ts) / 1000;
+  if (s < 90) return 'just now';
+  const m = s / 60;
+  if (m < 90) return `${Math.round(m)}m ago`;
+  const h = m / 60;
+  if (h < 36) return `${Math.round(h)}h ago`;
+  return `${Math.round(h / 24)}d ago`;
+}
+function renderRegulars(tails) {
+  const box = el('regularsList');
+  const all = tails || [];
+  const repeats = all.filter((t) => t.count > 1);
+  if (!repeats.length) {
+    box.innerHTML = `<span class="hint">No repeat visitors yet${all.length ? ` — ${all.length} unique tail(s) seen so far` : ''}. Counts build up while the display is running.</span>`;
+    return;
+  }
+  box.innerHTML = repeats
+    .slice(0, 20)
+    .map((t) => `<div class="reg-row"><span class="reg-tail">${esc(t.reg)}</span><span class="reg-count">${t.count}×</span><span class="reg-ago">${timeAgo(t.lastSeen)}</span></div>`)
+    .join('');
+}
+async function loadRegulars() {
+  try {
+    const { tails } = await getSightings(screenId);
+    renderRegulars(tails);
+  } catch {
+    el('regularsList').innerHTML = '<span class="hint">Could not load counts.</span>';
+  }
+}
+async function doResetRegulars() {
+  if (!confirm('Reset all repeat-aircraft counts for this screen?')) return;
+  const pin = cfg.pinRequired ? el('pin').value.trim() : '';
+  try {
+    await resetSightings(screenId, pin);
+    loadRegulars();
+    setStatus('Repeat counts reset.', 'ok');
+  } catch (err) {
+    if (err.code === 'invalid-pin') setStatus('Incorrect PIN.', 'err');
+    else setStatus(`Reset failed: ${err.message}`, 'err');
+  }
+}
+
 // --- Save ------------------------------------------------------------------
 async function save() {
   const pin = cfg.pinRequired ? el('pin').value.trim() : '';
@@ -246,6 +294,8 @@ el('geoBtn').addEventListener('click', () => {
 el('addTrack').addEventListener('click', () => addTrackRow(''));
 el('addAudio').addEventListener('click', () => addAudioRow({ pan: 'center', proxy: true }));
 el('exampleAudio').addEventListener('click', loadAudioExample);
+el('refreshRegulars').addEventListener('click', loadRegulars);
+el('resetRegulars').addEventListener('click', doResetRegulars);
 el('saveBtn').addEventListener('click', save);
 el('screenSelect').addEventListener('change', (e) => {
   history.replaceState(null, '', `?screen=${encodeURIComponent(e.target.value)}`);

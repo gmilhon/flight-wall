@@ -104,6 +104,9 @@ function flightCard(f, units) {
   const color = priv ? PRIVATE_COLOR : (airlineColor(f.airline) || cssVar('--accent'));
   const callsign = f.callsign || f.hex || '—';
   const emerg = f.emergency ? `<span class="emerg">${escapeHtml(f.emergency)}</span>` : '';
+  const seen = f.seenCount > 1
+    ? `<span class="seen-badge" title="Seen ${f.seenCount} times here">★ ${f.seenCount}</span>`
+    : '';
   const model = f.aircraft?.name || f.aircraft?.code || '';
   const pill = priv
     ? `<span class="airline-pill private">Private</span>`
@@ -116,7 +119,7 @@ function flightCard(f, units) {
   return `<article class="flight" style="--fc:${color}">
     ${acCol}
     <div class="ident">
-      <div class="flightno"><span class="cs">${escapeHtml(callsign)}</span>${emerg}</div>
+      <div class="flightno"><span class="cs">${escapeHtml(callsign)}</span>${seen}${emerg}</div>
       <div class="subline">${pill}${priv ? ownerHtml(f) : routeHtml(f, units)}</div>
     </div>
     <div class="metrics">

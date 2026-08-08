@@ -7,6 +7,7 @@ import { fetchJson } from './http.js';
 import { haversineKm, bearingDeg, clamp } from './geo.js';
 import { routeForCallsign, aircraftForReg, airlineFromCallsign } from './enrich.js';
 import { IATA2ICAO } from './airlines.js';
+import { recordSightings, getSeenCount } from './sightings.js';
 
 const rawCache = new Map(); // key -> { data, at }
 
@@ -150,9 +151,14 @@ export async function getAreaFlights(settings) {
   }
   const ac = await fetchArea(home.lat, home.lon, settings.radiusNm);
   let list = ac.map((a) => withGeo(normalizeBase(a), home));
+  // Count every tail in range (not just the ones shown) before limiting.
+  if (settings.showSightings !== false) await recordSightings(settings.screenId, list);
   sortFlights(list, settings.sort);
   list = list.slice(0, settings.maxFlights);
   await Promise.all(list.map(enrich));
+  if (settings.showSightings !== false) {
+    for (const f of list) f.seenCount = getSeenCount(settings.screenId, f.registration);
+  }
   return { flights: list };
 }
 
@@ -192,6 +198,11 @@ export async function getTrackedFlights(settings) {
   for (const r of results) {
     if (r.status === 'live') flights.push(r.flights[0]);
     else flights.push({ query: r.query, status: 'not-found', callsign: r.query });
+  }
+  if (settings.showSightings !== false) {
+    const live = flights.filter((f) => f.status !== 'not-found');
+    await recordSightings(settings.screenId, live);
+    for (const f of live) f.seenCount = getSeenCount(settings.screenId, f.registration);
   }
   return { flights };
 }

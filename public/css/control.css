@@ -72,6 +72,13 @@ input[type='range'] { width: 100%; accent-color: var(--accent); }
 .audio-actions .ghost { flex: 1; white-space: nowrap; }
 .hint a { color: var(--accent); }
 
+/* Regulars (repeat tail numbers) */
+.regulars { display: flex; flex-direction: column; gap: 0.35rem; max-height: 240px; overflow-y: auto; }
+.reg-row { display: flex; align-items: center; gap: 0.6rem; padding: 0.35rem 0.55rem; background: var(--input); border: 1px solid var(--line); border-radius: 8px; }
+.reg-tail { font-family: var(--mono); font-weight: 700; }
+.reg-count { color: var(--accent); font-weight: 700; }
+.reg-ago { margin-left: auto; color: var(--muted); font-size: 0.8rem; }
+
 /* Buttons */
 .ghost { background: var(--input); color: var(--text); border: 1px solid var(--line); border-radius: 9px; padding: 0.5rem 0.8rem; }
 .ghost:hover { border-color: var(--accent); }

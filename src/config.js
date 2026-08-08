@@ -18,7 +18,16 @@ export const config = {
   projectId:
     process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT || undefined,
   firestoreCollection: process.env.FS_COLLECTION || 'screens',
+  sightingsCollection: process.env.FS_SIGHTINGS || 'sightings',
   dataDir: process.env.DATA_DIR || './data',
+
+  // Tail-number sighting counts: only count a new "visit" after this gap, cap
+  // stored tails per screen, prune single sightings older than N days, and
+  // persist to durable storage at most this often.
+  sightingDebounceMs: Number(process.env.SIGHTING_DEBOUNCE_MS) || 3600000,
+  sightingFlushMs: Number(process.env.SIGHTING_FLUSH_MS) || 120000,
+  sightingMax: Number(process.env.SIGHTING_MAX) || 1500,
+  sightingPruneDays: Number(process.env.SIGHTING_PRUNE_DAYS) || 30,
 
   // Upstream data sources (all free, no API key required).
   adsbPrimary: process.env.ADSB_PRIMARY || 'https://api.adsb.lol',

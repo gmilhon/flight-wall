@@ -41,3 +41,23 @@ export async function saveSettings(screen, settings, pin) {
   if (!r.ok) throw new Error(`save ${r.status}`);
   return r.json();
 }
+
+export async function getSightings(screen) {
+  const r = await fetch(`/api/sightings?screen=${encodeURIComponent(screen)}`);
+  if (!r.ok) throw new Error(`sightings ${r.status}`);
+  return r.json();
+}
+
+export async function resetSightings(screen, pin) {
+  const r = await fetch(`/api/sightings?screen=${encodeURIComponent(screen)}`, {
+    method: 'DELETE',
+    headers: pin ? { 'x-control-pin': pin } : {},
+  });
+  if (r.status === 401) {
+    const e = new Error('invalid-pin');
+    e.code = 'invalid-pin';
+    throw e;
+  }
+  if (!r.ok) throw new Error(`reset ${r.status}`);
+  return r.json();
+}
