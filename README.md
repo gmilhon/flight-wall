@@ -67,12 +67,18 @@ Firestore (on Cloud Run) so you can control the display from anywhere.
   city names) resolved from the callsign.
 - **Aircraft enrichment**: type code, model, and manufacturer from the
   registration, with an offline airline fallback derived from the callsign.
+- **Visual identity**: a per-airline **colour**, the airline **logo**, and a
+  **type silhouette** (widebody, regional jet, turboprop, helicopter, GA, …) on
+  every card and map marker.
 
 **Made for a wall**
 - Three themes: **Departure board** (amber split-flap vibe), **Radar** (green CRT
   with scanlines), and **Minimal** (clean modern).
-- **Live radar**: range rings, aircraft plotted by true bearing and distance,
-  heading-oriented markers, and per-aircraft tags.
+- **Live map** (or a retro **radar**): aircraft plotted on a dark map centred on
+  your location, with a range ring, heading-oriented markers, and callsign tags.
+  Map tiles are proxied through the app so they load even on ad-blocked networks.
+- **Tracked-flight alerts**: a chime and an on-screen banner when a flight you're
+  tracking comes into range.
 - Card text auto-scales (CSS container queries) so 1–8 flights fit any screen
   from a 7″ Pi panel to a 4K TV without scrolling.
 - Kiosk niceties: one-click full screen, auto-hiding cursor, and it keeps showing
@@ -150,6 +156,8 @@ interval below what you need — the server already caches to minimise upstream 
 | [adsb.lol](https://api.adsb.lol/docs) | Live aircraft near a point; callsign search | Primary. Community ADS-B. |
 | [adsb.fi](https://github.com/adsbfi/opendata) | Live aircraft | Automatic fallback. |
 | [adsbdb.com](https://www.adsbdb.com/) | Callsign → airline + route; registration → aircraft | Cached for hours. |
+| [pics.avs.io](https://pics.avs.io/) | Airline logos (by IATA code) | Loaded by the browser; monogram fallback. |
+| [CARTO basemaps](https://carto.com/basemaps/) | Dark map tiles | Proxied + cached via `/api/map`. |
 
 Data is community-sourced ADS-B and is **best-effort** — coverage, routes, and
 identities can be missing or imperfect. Not for operational or navigational use.
@@ -291,6 +299,7 @@ Full details and examples in **[`docs/API.md`](docs/API.md)**.
 | `POST` | `/api/settings?screen=<id>` | Update settings (PIN required if configured). |
 | `GET` | `/api/screens` | List known screen ids. |
 | `GET` | `/api/config` | Server info (version, whether a PIN is required, storage). |
+| `GET` | `/api/map/{z}/{x}/{y}` | Proxied + cached dark map tiles for the display. |
 | `GET` | `/health` | Health check. |
 
 ---
@@ -312,7 +321,8 @@ Full details and examples in **[`docs/API.md`](docs/API.md)**.
 │   ├── index.html     # control panel
 │   ├── display.html   # display view
 │   ├── css/           # common + control + display styles (3 themes)
-│   └── js/            # control.js, display.js, shared format/api modules
+│   ├── js/            # control.js, display.js, format, api, airline-brand, silhouettes
+│   └── vendor/        # Leaflet (vendored, for the map)
 ├── docs/              # ARCHITECTURE.md, API.md, DISPLAY_SETUP.md
 ├── Dockerfile         # Cloud Run container
 ├── deploy.sh          # one-command deploy helper
@@ -325,8 +335,8 @@ Full details and examples in **[`docs/API.md`](docs/API.md)**.
 
 - **Node.js + Express** — a single stateless service (ESM, Node 20+).
 - **Vanilla HTML/CSS/JS** frontend (ES modules, no build step) — light enough for
-  a Raspberry Pi browser; radar drawn on `<canvas>`, layout via CSS grid +
-  container queries.
+  a Raspberry Pi browser; **Leaflet** (vendored) for the map, `<canvas>` for the
+  radar, layout via CSS grid + container queries.
 - **Firestore** for durable, shared settings; file/memory fallbacks for local dev.
 - **Google Cloud Run** for hosting; **Cloud Build** for source-to-container builds.
 
@@ -336,8 +346,8 @@ Full details and examples in **[`docs/API.md`](docs/API.md)**.
 
 - Coverage depends on community ADS-B receivers; sparse areas show fewer aircraft.
 - Route/airline data isn't available for every flight (especially general aviation).
-- Ideas: map tile view, aircraft photos, per-airline colours, sound/notification
-  when a tracked flight appears, and saved location presets.
+- Ideas: real aircraft photos, per-airline marker clustering, saved location
+  presets, and a weather overlay.
 
 ---
 

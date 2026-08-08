@@ -104,6 +104,42 @@ app.get('/api/state', async (req, res, next) => {
   }
 });
 
+// Map tile proxy: keeps the map working even when clients block CDN hosts,
+// and caches tiles in-process. Source: CARTO dark basemap (© OSM, © CARTO).
+const tileCache = new Map();
+app.get('/api/map/:z/:x/:y', async (req, res) => {
+  const z = parseInt(req.params.z, 10);
+  const x = parseInt(req.params.x, 10);
+  const y = parseInt(req.params.y, 10);
+  if (![z, x, y].every(Number.isInteger) || z < 0 || z > 19) return res.status(400).end();
+  const max = 2 ** z;
+  if (x < 0 || y < 0 || x >= max || y >= max) return res.status(400).end();
+
+  const key = `${z}/${x}/${y}`;
+  const cached = tileCache.get(key);
+  if (cached) {
+    res.set('Content-Type', cached.type);
+    res.set('Cache-Control', 'public, max-age=604800');
+    return res.send(cached.buf);
+  }
+  try {
+    const sub = 'abcd'[(x + y) % 4];
+    const r = await fetch(`https://${sub}.basemaps.cartocdn.com/dark_all/${z}/${x}/${y}.png`, {
+      headers: { 'User-Agent': config.userAgent },
+    });
+    if (!r.ok) return res.status(502).end();
+    const buf = Buffer.from(await r.arrayBuffer());
+    const type = r.headers.get('content-type') || 'image/png';
+    tileCache.set(key, { buf, type });
+    if (tileCache.size > 800) tileCache.delete(tileCache.keys().next().value);
+    res.set('Content-Type', type);
+    res.set('Cache-Control', 'public, max-age=604800');
+    res.send(buf);
+  } catch {
+    res.status(502).end();
+  }
+});
+
 // --- Static + pages --------------------------------------------------------
 
 app.use(

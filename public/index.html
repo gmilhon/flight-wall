@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#0e1116" />
   <title>Flight Wall — Control</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="/css/common.css?v=1" />
-  <link rel="stylesheet" href="/css/control.css?v=1" />
+  <link rel="stylesheet" href="/css/common.css?v=2" />
+  <link rel="stylesheet" href="/css/control.css?v=2" />
 </head>
 <body>
   <div class="wrap">
@@ -112,7 +112,19 @@
                 <option>20</option><option>30</option><option>45</option><option>60</option>
               </select>
             </div>
-            <div class="check"><label><input type="checkbox" id="showRadar" /> Show radar</label></div>
+            <div>
+              <label for="sidePanel">Side panel</label>
+              <select id="sidePanel">
+                <option value="map">Map</option>
+                <option value="radar">Radar</option>
+                <option value="off">Off (board only)</option>
+              </select>
+            </div>
+          </div>
+          <div class="toggles">
+            <label><input type="checkbox" id="showLogos" /> Airline logos</label>
+            <label><input type="checkbox" id="showAircraftIcons" /> Aircraft icons</label>
+            <label><input type="checkbox" id="alertOnAppear" /> Alert when a tracked flight appears</label>
           </div>
         </fieldset>
 
@@ -133,6 +145,6 @@
       </aside>
     </div>
   </div>
-  <script type="module" src="/js/control.js?v=1"></script>
+  <script type="module" src="/js/control.js?v=2"></script>
 </body>
 </html>

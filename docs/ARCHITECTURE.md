@@ -165,12 +165,20 @@ No build step; plain ES modules load directly in the browser.
 
 - **Shared** (`format.js`, `api.js`) — unit formatting/compass helpers and a thin
   API client, imported by both pages.
-- **Display** (`display.js`) — polls `/api/state`, renders the board with escaped
-  HTML, and draws the radar on a `<canvas>` (range rings, aircraft placed by true
-  bearing and distance, markers rotated to heading). A local clock ticks every
-  second. Card typography uses CSS **container queries** (`cqh`) so any number of
-  rows scales to fit the screen without scrolling. Kiosk touches: full-screen
-  toggle, cursor auto-hide, and last-data retention with a "reconnecting" pill.
+- **Display** (`display.js`) — polls `/api/state` and renders the board with
+  escaped HTML. The side panel is either a **Leaflet map** (dark tiles served
+  through the app's `/api/map` proxy, a range ring, and heading-oriented plane
+  markers) or a `<canvas>` **radar**. Each flight shows a per-airline colour, the
+  airline logo (`airline-brand.js`, avs.io + monogram fallback), and a type
+  silhouette (`aircraft-silhouettes.js`). In flight mode, a Web Audio chime and a
+  banner fire when a tracked flight first appears. A local clock ticks every
+  second; card typography uses CSS **container queries** (`cqh`) so any number of
+  rows fits without scrolling. Kiosk touches: full-screen toggle, cursor
+  auto-hide, and last-data retention with a "reconnecting" pill.
+- **Tile proxy** (`/api/map/{z}/{x}/{y}`) — validates coordinates, fetches the
+  CARTO dark basemap server-side, and caches tiles in-process. Same-origin tiles
+  can't be blocked by CDN-targeting ad blockers, so the map is reliable on a
+  kiosk.
 - **Control** (`control.js`) — binds the form to a settings object, handles
   geolocation, tracked-flight rows, and saving (with the optional PIN). The live
   preview is an `<iframe>` of the real display rendered at 1280×720 and CSS-scaled

@@ -46,7 +46,10 @@ function fillForm(s) {
   el('units').value = s.units;
   el('theme').value = s.theme;
   el('refresh').value = s.refreshSec;
-  el('showRadar').checked = !!s.showRadar;
+  el('sidePanel').value = s.sidePanel || 'map';
+  el('showLogos').checked = s.showLogos !== false;
+  el('showAircraftIcons').checked = s.showAircraftIcons !== false;
+  el('alertOnAppear').checked = s.alertOnAppear !== false;
   renderTrackList(s.trackedFlights || []);
 }
 
@@ -65,7 +68,10 @@ function gatherForm() {
     units: el('units').value,
     theme: el('theme').value,
     refreshSec: Number(el('refresh').value),
-    showRadar: el('showRadar').checked,
+    sidePanel: el('sidePanel').value,
+    showLogos: el('showLogos').checked,
+    showAircraftIcons: el('showAircraftIcons').checked,
+    alertOnAppear: el('alertOnAppear').checked,
     trackedFlights: [...document.querySelectorAll('.track-input')]
       .map((i) => i.value.trim())
       .filter(Boolean),

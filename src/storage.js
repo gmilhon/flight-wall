@@ -28,7 +28,10 @@ export function defaultSettings(screenId = DEFAULT_SCREEN_ID) {
     sort: 'distance', // 'distance' | 'altitude' | 'speed'
     theme: 'departure', // 'departure' | 'radar' | 'minimal'
     refreshSec: 10,
-    showRadar: true,
+    sidePanel: 'map', // 'map' | 'radar' | 'off'
+    showLogos: true,
+    showAircraftIcons: true,
+    alertOnAppear: true, // sound/visual alert when a tracked flight appears
     trackedFlights: [], // up to 5 callsigns / flight numbers
     updatedAt: 0,
   };
@@ -39,6 +42,7 @@ const ONE_OF = {
   units: ['aviation', 'metric', 'imperial'],
   sort: ['distance', 'altitude', 'speed'],
   theme: ['departure', 'radar', 'minimal'],
+  sidePanel: ['map', 'radar', 'off'],
 };
 
 function pick(value, allowed, fallback) {
@@ -88,7 +92,15 @@ export function sanitizeSettings(input, base) {
     sort: pick(src.sort, ONE_OF.sort, d.sort),
     theme: pick(src.theme, ONE_OF.theme, d.theme),
     refreshSec: Math.round(clamp(num(src.refreshSec, d.refreshSec), 5, 60)),
-    showRadar: src.showRadar === undefined ? d.showRadar : Boolean(src.showRadar),
+    // Migrate legacy showRadar: false -> sidePanel 'off'.
+    sidePanel: pick(
+      src.sidePanel,
+      ONE_OF.sidePanel,
+      src.sidePanel === undefined && src.showRadar === false ? 'off' : d.sidePanel
+    ),
+    showLogos: src.showLogos === undefined ? d.showLogos : Boolean(src.showLogos),
+    showAircraftIcons: src.showAircraftIcons === undefined ? d.showAircraftIcons : Boolean(src.showAircraftIcons),
+    alertOnAppear: src.alertOnAppear === undefined ? d.alertOnAppear : Boolean(src.alertOnAppear),
     trackedFlights: tracked,
     updatedAt: Date.now(),
   };

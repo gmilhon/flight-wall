@@ -39,6 +39,7 @@ Name=Flight Wall
 Exec=/usr/bin/chromium-browser --kiosk --incognito --noerrdialogs \
   --disable-infobars --check-for-update-interval=31536000 \
   --disable-session-crashed-bubble \
+  --autoplay-policy=no-user-gesture-required \
   "https://YOUR-SERVICE-URL/display?screen=main"
 EOF
 ```
@@ -97,7 +98,13 @@ screensaver/sleep. This is the simplest option for a quick trial.
 - **Wi-Fi only?** Fine — the display just needs internet to reach the service.
 - **Performance:** the page is lightweight, but on a Pi Zero keep `refreshSec` at
   10s+ and `maxFlights` modest for the smoothest result.
-- **Portrait vs landscape:** both work; the board and radar reflow to fit.
+- **Portrait vs landscape:** both work; the board and map/radar reflow to fit.
+- **Alert sound:** browsers block audio until a page is interacted with. For the
+  tracked-flight chime on a kiosk, launch Chromium with
+  `--autoplay-policy=no-user-gesture-required` (included in the autostart command
+  above) or tap the screen once. The on-screen banner always shows regardless.
+- **Side panel:** choose Map, Radar, or Off per screen in the control panel. The
+  map uses tiles proxied through the app, so it works even on ad-blocked networks.
 - **Kiosk exit:** on a Pi, <kbd>Ctrl</kbd>+<kbd>W</kbd> or <kbd>Alt</kbd>+<kbd>F4</kbd>;
   plug in a keyboard if needed.
 

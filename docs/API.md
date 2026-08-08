@@ -26,6 +26,13 @@ PIN.
 { "version": "1.0.0", "pinRequired": true, "storage": "firestore", "defaultScreen": "main" }
 ```
 
+## `GET /api/map/{z}/{x}/{y}`
+
+Proxied dark map tiles (CARTO basemap, © OpenStreetMap © CARTO) used by the
+display's map view. Coordinates are validated, fetched server-side, and cached
+in-process, so the map keeps working even when a client blocks CDN hosts.
+Returns `image/png`.
+
 ## `GET /api/screens`
 
 List known screen ids.
@@ -75,7 +82,10 @@ curl "$BASE/api/settings?screen=main"
 | `sort` | string | `distance` \| `altitude` \| `speed` | Airborne always ranks above ground. |
 | `theme` | string | `departure` \| `radar` \| `minimal` | |
 | `refreshSec` | integer | 5..60 | Display poll interval. |
-| `showRadar` | boolean | | Radar panel (area mode). |
+| `sidePanel` | string | `map` \| `radar` \| `off` | Live map, retro radar, or board-only. |
+| `showLogos` | boolean | | Airline logos on cards. |
+| `showAircraftIcons` | boolean | | Aircraft type silhouettes. |
+| `alertOnAppear` | boolean | | Chime + banner when a tracked flight appears. |
 | `trackedFlights` | string[] | ≤ 5 | Callsigns/flight numbers (flight mode). |
 
 ## `POST /api/settings?screen=<id>`
